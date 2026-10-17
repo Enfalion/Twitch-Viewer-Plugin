@@ -1,0 +1,24 @@
+{
+  "name": "opendeck-twitch-viewer-plugin",
+  "version": "1.3.0",
+  "description": "Cross-Platform OpenDeck & Stream Deck Plugin tailored for Twitch Viewers (Dynamic DE/EN localization)",
+  "type": "module",
+  "main": "bin/plugin.js",
+  "scripts": {
+    "start": "node bin/plugin.js"
+  },
+  "keywords": [
+    "opendeck",
+    "streamdeck",
+    "twitch",
+    "viewer",
+    "linux",
+    "windows",
+    "macos"
+  ],
+  "author": "Community Open-Source",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

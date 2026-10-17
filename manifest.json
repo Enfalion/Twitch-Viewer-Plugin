@@ -1,0 +1,106 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Name": "Twitch Viewer Deck",
+  "Version": "1.3.0",
+  "Author": "Community Open-Source",
+  "Description": "Ultimate Twitch Viewer Plugin (Live Avatars, Auto-Rotating Live Slots, Live Switcher, Quick Chat !lurk & MultiTwitch) - Auto DE/EN",
+  "Category": "Twitch Viewer",
+  "CategoryIcon": "assets/category-icon",
+  "Icon": "assets/plugin-icon",
+  "CodePath": "bin/plugin.js",
+  "PropertyInspectorPath": "ui/inspector.html",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "5.0"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "11"
+    },
+    {
+      "Platform": "linux"
+    }
+  ],
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "enabled"
+  },
+  "Actions": [
+    {
+      "UUID": "com.community.twitchviewer.streamer",
+      "Name": "Favorite Streamer (Live Status)",
+      "Icon": "assets/action-streamer",
+      "Tooltip": "Displays streamer avatar (Grayscale = Offline, Color = Live + 100% Optional Badges)",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "States": [
+        {
+          "Image": "assets/default-key"
+        }
+      ]
+    },
+    {
+      "UUID": "com.community.twitchviewer.autoslot",
+      "Name": "Dynamic Live Slot (Auto-Rotate)",
+      "Icon": "assets/action-autoslot",
+      "Tooltip": "Displays currently live followed channels with automatic rotation",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "assets/default-key"
+        }
+      ]
+    },
+    {
+      "UUID": "com.community.twitchviewer.autopage",
+      "Name": "Dynamic Live Switcher",
+      "Icon": "assets/action-page",
+      "Tooltip": "Shows total live count & cycles all Dynamic Live Slots on press",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "assets/default-key"
+        }
+      ]
+    },
+    {
+      "UUID": "com.community.twitchviewer.chatmacro",
+      "Name": "Quick Chat / !lurk (Channel Icon)",
+      "Icon": "assets/action-chat",
+      "Tooltip": "Shows channel avatar & sends !lurk or custom message on short press",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "assets/default-key"
+        }
+      ]
+    },
+    {
+      "UUID": "com.community.twitchviewer.multitwitch",
+      "Name": "MultiTwitch Split-Screen",
+      "Icon": "assets/action-multi",
+      "Tooltip": "Opens 2 to 4 streams side-by-side in a single split-screen window",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "assets/default-key"
+        }
+      ]
+    }
+  ]
+}

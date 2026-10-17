@@ -1,0 +1,24 @@
+{
+  "Description": "Ultimate Twitch Viewer Plugin (Live Avatars, Auto-Rotating Live Slots, Live Switcher, Quick Chat !lurk & MultiTwitch)",
+  "Category": "Twitch Viewer",
+  "com.community.twitchviewer.streamer": {
+    "Name": "Favorite Streamer (Live Status)",
+    "Tooltip": "Displays streamer avatar (Grayscale = Offline, Color = Live + 100% Optional Badges)"
+  },
+  "com.community.twitchviewer.autoslot": {
+    "Name": "Dynamic Live Slot (Auto-Rotate)",
+    "Tooltip": "Displays currently live followed channels with automatic rotation"
+  },
+  "com.community.twitchviewer.autopage": {
+    "Name": "Dynamic Live Switcher (Next)",
+    "Tooltip": "Shows total live count & cycles all Dynamic Live Slots on press"
+  },
+  "com.community.twitchviewer.chatmacro": {
+    "Name": "Quick Chat / !lurk (Channel Icon)",
+    "Tooltip": "Shows channel avatar & sends !lurk or custom message on short press"
+  },
+  "com.community.twitchviewer.multitwitch": {
+    "Name": "MultiTwitch Split-Screen",
+    "Tooltip": "Opens 2 to 4 streams side-by-side in a single split-screen window"
+  }
+}
