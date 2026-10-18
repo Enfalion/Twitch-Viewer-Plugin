@@ -187,10 +187,17 @@ zip -r xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip xyz.enfalion.twitchviewer.s
 cp xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip xyz.enfalion.twitchviewer.streamDeckPlugin
 md5sum xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip > xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip.md5
 
+Twitch Login Options:
+
 <img width="2237" height="384" alt="image" src="https://github.com/user-attachments/assets/1f572575-6828-457d-acff-9f9ac74a4920" />
 
+Streamer aussuchen | Select your Streamer
 
+<img width="789" height="811" alt="Bildschirmfoto_20261019_012112" src="https://github.com/user-attachments/assets/9d1c2111-754e-4d4d-a465-8065d26a0216" />
 
+Optionen:
+
+<img width="759" height="354" alt="Bildschirmfoto_20261019_012254" src="https://github.com/user-attachments/assets/f2c1a91f-0a11-4905-96b1-b8e19be6f284" />
 
 
 
