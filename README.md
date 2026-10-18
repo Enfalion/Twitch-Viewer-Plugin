@@ -187,6 +187,12 @@ zip -r xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip xyz.enfalion.twitchviewer.s
 cp xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip xyz.enfalion.twitchviewer.streamDeckPlugin
 md5sum xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip > xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip.md5
 
+<img width="2237" height="384" alt="image" src="https://github.com/user-attachments/assets/1f572575-6828-457d-acff-9f9ac74a4920" />
+
+
+
+
+
 
 📄 License
 
