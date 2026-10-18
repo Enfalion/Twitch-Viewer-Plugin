@@ -227,18 +227,5 @@ md5 -r com.community.twitchviewer.streamDeckPlugin > com.community.twitchviewer.
 
 ---
 
-### 4. Auf GitHub als offizielles „Release“ veröffentlichen
-1. Öffne dein GitHub-Repository im Browser.
-2. Klicke rechts in der Seitenleiste auf **„Releases“** &rarr; **„Create a new release“** (oder *„Draft a new release“*).
-3. Klicke auf **„Choose a tag“**, tippe **`v1.3.0`** ein und klicke auf *„Create new tag: v1.3.0 on publish“*.
-4. **Release Title:** `v1.3.0 – Initial Public Release (DE / EN)`
-5. Ziehe unten in das Feld *„Attach binaries by dropping them here“* deine erzeugten Dateien hinein:
-   * `com.community.twitchviewer.streamDeckPlugin`
-   * `com.community.twitchviewer.sdPlugin-v1.3.0.zip`
-   * `com.community.twitchviewer.sdPlugin-v1.3.0.zip.md5`
-6. Klicke unten auf den grünen Button **„Publish release“** – fertig! Dein Plugin ist jetzt offiziell mit Direkt-Download auf GitHub veröffentlicht!
-
----
-
 ## 📄 License
 Published under the [MIT License](./LICENSE). Free to fork, modify, and share!
