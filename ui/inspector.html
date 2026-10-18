@@ -1,667 +1,666 @@
 <!DOCTYPE html>
-  <html lang="de">
-  <head>
-  <meta charset="UTF-8">
-  <title>Twitch Viewer Property Inspector v1.3.0</title>
-  <style>
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: #2d2d2d;
-    color: #e4e4e7;
-    margin: 0;
-    padding: 12px;
-    font-size: 12px;
-  }
-  .top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-  .lang-switch {
-    display: inline-flex;
-    background: #141417;
-    border: 1px solid #3f3f46;
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  .lang-btn {
-    width: auto;
-    background: transparent;
-    color: #a1a1aa;
-    padding: 3px 8px;
-    margin: 0;
-    font-size: 10px;
-    border-radius: 0;
-  }
-  .lang-btn.active {
-    background: #9146FF;
-    color: #ffffff;
-  }
-  .card {
-    background: #202023;
-    border: 1px solid #3f3f46;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 12px;
-  }
-  label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 4px;
-    color: #a1a1aa;
-  }
-  input[type="text"], input[type="number"], select {
-    width: 100%;
-    box-sizing: border-box;
-    background: #141417;
-    border: 1px solid #3f3f46;
-    color: #fff;
-    padding: 6px 8px;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    font-size: 12px;
-  }
-  .checkbox-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 5px 0;
-    cursor: pointer;
-    font-weight: normal;
-    color: #e4e4e7;
-  }
-  button {
-    width: 100%;
-    background: #9146FF;
-    color: #fff;
-    border: none;
-    padding: 8px 10px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-bottom: 6px;
-  }
-  button:hover { background: #772CE8; }
-  button.secondary {
-    background: #3f3f46;
-    font-size: 11px;
-    padding: 6px;
-  }
-  button.secondary:hover { background: #52525b; }
-  button.danger {
-    background: #dc2626;
-    color: #ffffff;
-    font-size: 11px;
-    padding: 6px 10px;
-    margin-top: 4px;
-  }
-  button.danger:hover { background: #b91c1c; }
-  .hint {
-    font-size: 11px;
-    color: #a1a1aa;
-    line-height: 1.45;
-    margin-bottom: 8px;
-  }
-  .code-box {
-    background: #141417;
-    border: 1px dashed #9146FF;
-    padding: 8px;
-    text-align: center;
-    font-size: 16px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    color: #facc15;
-    margin-top: 6px;
-    margin-bottom: 8px;
-    border-radius: 6px;
-  }
-  details {
-    margin-top: 6px;
-    font-size: 11px;
-    color: #a1a1aa;
-    border-top: 1px solid #3f3f46;
-    padding-top: 8px;
-  }
-  summary {
-    cursor: pointer;
-    color: #c084fc;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-  ol.guide-list {
-    margin: 4px 0 10px 16px;
-    padding: 0;
-    color: #d4d4d8;
-    line-height: 1.5;
-  }
-  code {
-    background: #141417;
-    padding: 1px 4px;
-    border-radius: 4px;
-    color: #facc15;
-  }
-  </style>
-  </head>
-  <body>
-
-  <div class="top-bar">
-  <span id="i18n-plugin-subtitle" style="font-size: 10px; color: #71717a; font-weight: 600; text-transform: uppercase;">
-  OpenDeck Sprache erkannt
-  </span>
-  <div class="lang-switch">
-  <button type="button" id="btn-lang-de" class="lang-btn active" onclick="switchLanguage('de')">DE</button>
-  <button type="button" id="btn-lang-en" class="lang-btn" onclick="switchLanguage('en')">EN</button>
-  </div>
-  </div>
-
-  <div class="card">
-  <label id="i18n-account-title">1. Twitch Konto (Account Login)</label>
-  <div id="auth-status" style="margin-bottom: 8px; color: #f59e0b; font-weight: bold;">Nicht verbunden</div>
-
-  <div id="login-controls">
-  <button id="i18n-btn-login" onclick="startDeviceLogin()">⚡ 1-Klick Twitch Login (mit 8-stelligem Code)</button>
-  </div>
-
-  <div id="logout-controls" style="display: none;">
-  <button id="i18n-btn-refresh" class="secondary" onclick="forceRefreshChannels()">🔄 Gefolgte Kanäle & Live-Status jetzt aktualisieren</button>
-  <button id="i18n-btn-logout" class="danger" onclick="logoutTwitch()">🚪 Vom Twitch-Konto abmelden (Logout)</button>
-  </div>
-
-  <div id="device-code-display" class="code-box" style="display: none;"></div>
-
-  <details id="advanced-auth-details">
-  <summary id="i18n-adv-summary">⚙️ Erweiterte Login-Optionen / Eigene Client-ID</summary>
-  <div id="i18n-adv-guide" class="hint"></div>
-  <label id="i18n-clientid-label">Deine Twitch App Client-ID:</label>
-  <input type="text" id="clientId" placeholder="z.B. a1b2c3d4e5f6g7h8i9j0..." onchange="saveClientId()">
-  <button id="i18n-btn-save-clientid" class="secondary" onclick="startDeviceLogin()">🔑 Client-ID speichern & Code-Login starten</button>
-  </details>
-  </div>
-
-  <div id="section-streamer" class="card" style="display: none;">
-  <div id="streamer-select-wrap">
-  <label id="i18n-select-streamer">Gefolgten Streamer auswählen:</label>
-  <select id="streamerLogin" onchange="saveKeySettings()">
-  <option value="">--</option>
-  </select>
-  </div>
-
-  <div id="autoslot-config-wrap" style="display: none;">
-  <label id="i18n-autoslot-title">⚡ Dynamic Live Slot Verhalten:</label>
-  <label class="checkbox-row">
-  <input type="checkbox" id="autoRotate" checked onchange="saveKeySettings()">
-  <b id="i18n-autorotate-label">Automatisch durchschalten (alle 10 Sek.)</b>
-  </label>
-  <div id="i18n-autorotate-hint" class="hint"></div>
-  <label id="i18n-autopin-label">Oder festen Live-Platz anpinnen (0 = Auto-Rotation):</label>
-  <input type="number" id="autoIndex" min="0" max="64" value="0" onchange="saveKeySettings()">
-  </div>
-  </div>
-
-  <div id="section-overlays" class="card" style="display: none;">
-  <label id="i18n-overlays-title">🎨 Icon-Elemente (100% Optional)</label>
-  <label class="checkbox-row">
-  <input type="checkbox" id="grayscaleOffline" checked onchange="saveKeySettings()">
-  <span id="i18n-opt-gray">Offline-Profilbild in Graustufen</span>
-  </label>
-  <label class="checkbox-row">
-  <input type="checkbox" id="showLiveBorder" checked onchange="saveKeySettings()">
-  <span id="i18n-opt-border">Roter Rahmen wenn LIVE</span>
-  </label>
-  <label class="checkbox-row">
-  <input type="checkbox" id="showName" checked onchange="saveKeySettings()">
-  <span id="i18n-opt-name">Streamer-Name unten anzeigen</span>
-  </label>
-  <label class="checkbox-row">
-  <input type="checkbox" id="showViewers" checked onchange="saveKeySettings()">
-  <span id="i18n-opt-viewers">Zuschauerzahl oben anzeigen</span>
-  </label>
-  <label class="checkbox-row">
-  <input type="checkbox" id="showGame" onchange="saveKeySettings()">
-  <span id="i18n-opt-game">Aktuelles Spiel / Kategorie anzeigen</span>
-  </label>
-  </div>
-
-  <div id="section-press" class="card" style="display: none;">
-  <label id="i18n-shortpress-label">👆 Kurz drücken (Short Tap)</label>
-  <select id="shortPress" onchange="saveKeySettings()">
-  <option value="browser" id="i18n-sp-browser">🌐 Standard-Browser öffnen</option>
-  <option value="popout" id="i18n-sp-popout">🗔 Rahmenloser Popout-Player</option>
-  <option value="streamlink" id="i18n-sp-streamlink">🚀 Eigener Player / Streamlink / VLC</option>
-  <option value="chat" id="i18n-sp-chat">💬 Nur Popout-Chat öffnen</option>
-  </select>
-
-  <label id="i18n-longpress-label">⏳ Lang drücken >= 500ms (Long Hold)</label>
-  <select id="longPress" onchange="saveKeySettings()">
-  <option value="next_live" id="i18n-lp-next">⏭ Nächster Live-Streamer (Rotation)</option>
-  <option value="chat" id="i18n-lp-chat">💬 Nur Popout-Chat öffnen</option>
-  <option value="lurk" id="i18n-lp-lurk">🥷 !lurk Nachricht in den Chat senden</option>
-  <option value="streamlink" id="i18n-lp-streamlink">🚀 Streamlink / Externer Player</option>
-  </select>
-
-  <label id="i18n-customcmd-label">Eigener Player-Befehl (Platzhalter: {channel})</label>
-  <input type="text" id="customCmd" placeholder="streamlink https://twitch.tv/{channel} best" onchange="saveKeySettings()">
-  </div>
-
-  <div id="section-chat" class="card" style="display: none;">
-  <label id="i18n-chat-target-label">Ziel-Kanal für diese Taste (inkl. Kanal-Icon):</label>
-  <select id="targetChannelLogin" onchange="saveKeySettings()">
-  <option value="">🎯</option>
-  </select>
-  <div id="i18n-chat-hint" class="hint"></div>
-
-  <label id="i18n-chat-msg-label">Chat-Nachricht bei Tastendruck senden:</label>
-  <input type="text" id="message" value="!lurk" placeholder="!lurk" onchange="saveKeySettings()">
-  </div>
-
-  <div id="section-multitwitch" class="card" style="display: none;">
-  <label id="i18n-multi-title">📺 Was macht MultiTwitch Split-Screen?</label>
-  <div id="i18n-multi-hint" class="hint"></div>
-  <label id="i18n-multi-input-label">Streamer-Namen (getrennt mit Leerzeichen oder +):</label>
-  <input type="text" id="channels" placeholder="gronkh + bonjwa + papaplatte" onchange="saveKeySettings()">
-  </div>
-
-  <div id="section-autopage" class="card" style="display: none;">
-  <label id="i18n-autopage-title">⚡ Dynamic Live Switcher / Weiter-Taste</label>
-  <div id="i18n-autopage-hint" class="hint"></div>
-  </div>
-
-  <script>
-  let websocket = null;
-  let piUUID = null;
-  let actionUUID = '';
-  let currentSettings = {};
-  let currentLang = 'de';
-  let isUserConnected = false;
-  let connectedUserName = '';
-  let cachedChannels = [];
-
-  const TRANSLATIONS = {
-    de: {
-      subtitle: 'Sprache: Deutsch (OpenDeck)',
-      accountTitle: '1. Twitch Konto (Account Login)',
-      notConnected: 'Nicht verbunden',
-      connectedAs: '✔ Verbunden als: ',
-      btnLogin: '⚡ 1-Klick Twitch Login (mit 8-stelligem Code)',
-      btnRefresh: '🔄 Gefolgte Kanäle & Live-Status jetzt aktualisieren',
-      btnLogout: '🚪 Vom Twitch-Konto abmelden (Logout)',
-      codePrompt: 'Code auf twitch.tv/activate eingeben:',
-      advSummary: '⚙️ Erweiterte Login-Optionen / Eigene Client-ID',
-      advGuide: '<b>So erstellst du dir in 30 Sekunden eine eigene kostenlose Twitch Client-ID:</b><ol class="guide-list"><li>Öffne <code>dev.twitch.tv/console/apps</code> und klicke auf <b>"Anwendung registrieren"</b>.</li><li>Name: z.B. <code>MeinOpenDeckViewer</code></li><li>OAuth-Weiterleitungs-URL: <code>http://localhost</code></li><li>Kategorie: <b>Application Integration</b> &rarr; Client-Typ: <b>Öffentlich (Public)</b>.</li><li>Kopiere die angezeigte <b>Client-ID</b> hier in das Feld:</li></ol>',
-      clientIdLabel: 'Deine Twitch App Client-ID:',
-      btnSaveClientId: '🔑 Client-ID speichern & Code-Login starten',
-      selectStreamer: 'Gefolgten Streamer auswählen:',
-      pleaseConnectFirst: '-- Bitte erst mit Twitch verbinden --',
-      autoslotTitle: '⚡ Dynamic Live Slot Verhalten:',
-      autorotateLabel: 'Automatisch durchschalten (alle 10 Sek.)',
-      autorotateHint: 'Wenn aktiv, rotiert diese Taste automatisch durch alle deine aktuell live streamenden Favoriten! (Lang-Druck schaltet sofort zum nächsten).',
-      autopinLabel: 'Oder festen Live-Platz anpinnen (0 = Auto-Rotation):',
-      overlaysTitle: '🎨 Icon-Elemente (100% Optional)',
-      optGray: 'Offline-Profilbild in Graustufen',
-      optBorder: 'Roter Rahmen wenn LIVE',
-      optName: 'Streamer-Name unten anzeigen',
-      optViewers: 'Zuschauerzahl oben anzeigen',
-      optGame: 'Aktuelles Spiel / Kategorie anzeigen',
-      shortPressLabel: '👆 Kurz drücken (Short Tap)',
-      spBrowser: '🌐 Standard-Browser öffnen',
-      spPopout: '🗔 Rahmenloser Popout-Player',
-      spStreamlink: '🚀 Eigener Player / Streamlink / VLC',
-      spChat: '💬 Nur Popout-Chat öffnen',
-      longPressLabel: '⏳ Lang drücken >= 500ms (Long Hold)',
-      lpNext: '⏭ Nächster Live-Streamer (Rotation)',
-      lpChat: '💬 Nur Popout-Chat öffnen',
-      lpLurk: '🥷 !lurk Nachricht in den Chat senden',
-      lpStreamlink: '🚀 Streamlink / Externer Player',
-      customCmdLabel: 'Eigener Player-Befehl (Platzhalter: {channel})',
-      chatTargetLabel: 'Ziel-Kanal für diese Taste (inkl. Kanal-Icon):',
-      autoActiveStream: '🎯 Automatisch: Aktiver / Zuletzt geöffneter Live-Stream',
-      chatHint: 'Das Profilbild des gewählten (oder aktuell aktiven) Streamers wird direkt auf der Taste angezeigt! Ein <b>kurzer Druck</b> sendet sofort die Nachricht.',
-      chatMsgLabel: 'Chat-Nachricht bei Tastendruck senden:',
-      multiTitle: '📺 Was macht MultiTwitch Split-Screen?',
-      multiHint: 'Wenn mehrere deiner Lieblingsstreamer gleichzeitig zusammen spielen (z.B. Turnier, Mario Kart, Rust), öffnet diese Taste <b>alle Streams nebeneinander in einem einzigen Fenster</b>!',
-      multiInputLabel: 'Streamer-Namen (getrennt mit Leerzeichen oder +):',
-      autopageTitle: '⚡ Dynamic Live Switcher / Weiter-Taste',
-      autopageHint: 'Diese Taste zeigt dir live an, <b>wie viele deiner Favoriten gerade online sind</b> (z.B. "6 LIVE").<br><br>Ein kurzer Druck darauf schaltet sofort alle <b>Dynamic Live Slots</b> auf deinem Deck einen Streamer weiter!'
-    },
-    en: {
-      subtitle: 'Language: English (OpenDeck)',
-      accountTitle: '1. Twitch Account Login',
-      notConnected: 'Not connected',
-      connectedAs: '✔ Connected as: ',
-      btnLogin: '⚡ 1-Click Twitch Login (with 8-digit Code)',
-      btnRefresh: '🔄 Refresh Followed Channels & Live Status Now',
-      btnLogout: '🚪 Disconnect Twitch Account (Logout)',
-      codePrompt: 'Enter code on twitch.tv/activate:',
-      advSummary: '⚙️ Advanced Login Options / Custom Client-ID',
-      advGuide: '<b>How to create your own free Twitch Client-ID in 30 seconds:</b><ol class="guide-list"><li>Open <code>dev.twitch.tv/console/apps</code> and click <b>"Register Your Application"</b>.</li><li>Name: e.g. <code>MyOpenDeckViewer</code></li><li>OAuth Redirect URL: <code>http://localhost</code></li><li>Category: <b>Application Integration</b> &rarr; Client Type: <b>Public</b>.</li><li>Copy the generated <b>Client-ID</b> into the field below:</li></ol>',
-      clientIdLabel: 'Your Twitch App Client-ID:',
-      btnSaveClientId: '🔑 Save Client-ID & Start Code Login',
-      selectStreamer: 'Select Followed Streamer:',
-      pleaseConnectFirst: '-- Please connect with Twitch first --',
-      autoslotTitle: '⚡ Dynamic Live Slot Behavior:',
-      autorotateLabel: 'Auto-Rotate Live Streamers (every 10s)',
-      autorotateHint: 'When enabled, this key automatically cycles through all your currently live favorite streamers! (Hold key to skip to the next one immediately).',
-      autopinLabel: 'Or pin to fixed live slot index (0 = Auto-Rotate):',
-      overlaysTitle: '🎨 Icon Overlays (100% Optional)',
-      optGray: 'Convert offline avatar to grayscale',
-      optBorder: 'Red border when LIVE',
-      optName: 'Show streamer name at bottom',
-      optViewers: 'Show viewer count at top',
-      optGame: 'Show current game / category',
-      shortPressLabel: '👆 Short Press (Key Tap)',
-      spBrowser: '🌐 Open in Default Browser',
-      spPopout: '🗔 Borderless Popout Player',
-      spStreamlink: '🚀 Custom Player / Streamlink / VLC',
-      spChat: '💬 Open Popout Chat Only',
-      longPressLabel: '⏳ Long Press >= 500ms (Key Hold)',
-      lpNext: '⏭ Next Live Streamer (Cycle)',
-      lpChat: '💬 Open Popout Chat Only',
-      lpLurk: '🥷 Send !lurk message to chat',
-      lpStreamlink: '🚀 Streamlink / External Player',
-      customCmdLabel: 'Custom Player Command (Placeholder: {channel})',
-      chatTargetLabel: 'Target Channel for this Key (shows Avatar):',
-      autoActiveStream: '🎯 Automatic: Currently Active / Last Opened Stream',
-      chatHint: 'Displays the avatar of the selected (or currently active) streamer right on the key! A <b>short press</b> immediately sends your message.',
-      chatMsgLabel: 'Chat message to send on key press:',
-      multiTitle: '📺 What does MultiTwitch Split-Screen do?',
-      multiHint: 'When multiple favorite streamers are playing together (e.g., tournaments, Mario Kart, Rust), this key opens <b>all streams side-by-side in a single window</b>!',
-      multiInputLabel: 'Streamer names (separated by space or +):',
-      autopageTitle: '⚡ Dynamic Live Switcher / Next Key',
-      autopageHint: 'This key shows you live <b>how many of your followed channels are currently online</b> (e.g. "6 LIVE").<br><br>A short press immediately cycles all <b>Dynamic Live Slots</b> on your deck to the next streamer!'
-    }
-  };
-
-  function tr(key) {
-    const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
-    return dict[key] || TRANSLATIONS.en[key] || key;
-  }
-
-  function applyTranslations() {
-    document.documentElement.lang = currentLang;
-    document.getElementById('btn-lang-de').className = 'lang-btn ' + (currentLang === 'de' ? 'active' : '');
-    document.getElementById('btn-lang-en').className = 'lang-btn ' + (currentLang === 'en' ? 'active' : '');
-
-    document.getElementById('i18n-plugin-subtitle').textContent = tr('subtitle');
-    document.getElementById('i18n-account-title').textContent = tr('accountTitle');
-    document.getElementById('i18n-btn-login').textContent = tr('btnLogin');
-    document.getElementById('i18n-btn-refresh').textContent = tr('btnRefresh');
-    document.getElementById('i18n-btn-logout').textContent = tr('btnLogout');
-    document.getElementById('i18n-adv-summary').textContent = tr('advSummary');
-    document.getElementById('i18n-adv-guide').innerHTML = tr('advGuide');
-    document.getElementById('i18n-clientid-label').textContent = tr('clientIdLabel');
-    document.getElementById('i18n-btn-save-clientid').textContent = tr('btnSaveClientId');
-
-    document.getElementById('i18n-select-streamer').textContent = tr('selectStreamer');
-    document.getElementById('i18n-autoslot-title').textContent = tr('autoslotTitle');
-    document.getElementById('i18n-autorotate-label').textContent = tr('autorotateLabel');
-    document.getElementById('i18n-autorotate-hint').textContent = tr('autorotateHint');
-    document.getElementById('i18n-autopin-label').textContent = tr('autopinLabel');
-
-    document.getElementById('i18n-overlays-title').textContent = tr('overlaysTitle');
-    document.getElementById('i18n-opt-gray').textContent = tr('optGray');
-    document.getElementById('i18n-opt-border').textContent = tr('optBorder');
-    document.getElementById('i18n-opt-name').textContent = tr('optName');
-    document.getElementById('i18n-opt-viewers').textContent = tr('optViewers');
-    document.getElementById('i18n-opt-game').textContent = tr('optGame');
-
-    document.getElementById('i18n-shortpress-label').textContent = tr('shortPressLabel');
-    document.getElementById('i18n-sp-browser').textContent = tr('spBrowser');
-    document.getElementById('i18n-sp-popout').textContent = tr('spPopout');
-    document.getElementById('i18n-sp-streamlink').textContent = tr('spStreamlink');
-    document.getElementById('i18n-sp-chat').textContent = tr('spChat');
-
-    document.getElementById('i18n-longpress-label').textContent = tr('longPressLabel');
-    document.getElementById('i18n-lp-next').textContent = tr('lpNext');
-    document.getElementById('i18n-lp-chat').textContent = tr('lpChat');
-    document.getElementById('i18n-lp-lurk').textContent = tr('lpLurk');
-    document.getElementById('i18n-lp-streamlink').textContent = tr('lpStreamlink');
-    document.getElementById('i18n-customcmd-label').textContent = tr('customCmdLabel');
-
-    document.getElementById('i18n-chat-target-label').textContent = tr('chatTargetLabel');
-    document.getElementById('i18n-chat-hint').innerHTML = tr('chatHint');
-    document.getElementById('i18n-chat-msg-label').textContent = tr('chatMsgLabel');
-
-    document.getElementById('i18n-multi-title').textContent = tr('multiTitle');
-    document.getElementById('i18n-multi-hint').innerHTML = tr('multiHint');
-    document.getElementById('i18n-multi-input-label').textContent = tr('multiInputLabel');
-
-    document.getElementById('i18n-autopage-title').textContent = tr('autopageTitle');
-    document.getElementById('i18n-autopage-hint').innerHTML = tr('autopageHint');
-
-    setAuthUiState(isUserConnected, connectedUserName);
-    updateChannelDropdowns(cachedChannels);
-  }
-
-  function switchLanguage(lang) {
-    currentLang = (lang === 'de') ? 'de' : 'en';
-    applyTranslations();
-    if (websocket && websocket.readyState === WebSocket.OPEN) {
-      websocket.send(JSON.stringify({
-        event: 'sendToPlugin',
-        action: actionUUID,
-        context: piUUID,
-        payload: { command: 'setLanguage', language: currentLang }
-      }));
-    }
-  }
-
-  function connectElgatoStreamDeckSocket(inPort, inPropertyInspectorUUID, inRegisterEvent, inInfo, inActionInfo) {
-    piUUID = inPropertyInspectorUUID;
-
-    try {
-      const infoObj = JSON.parse(inInfo);
-      const sdkLang = String(infoObj?.application?.language || navigator.language || 'de').toLowerCase();
-      currentLang = sdkLang.startsWith('de') ? 'de' : 'en';
-    } catch (e) {
-      const navLang = String(navigator.language || 'de').toLowerCase();
-      currentLang = navLang.startsWith('de') ? 'de' : 'en';
-    }
-
-    const actionData = JSON.parse(inActionInfo);
-    actionUUID = actionData.action;
-    currentSettings = actionData.payload.settings || {};
-
-    configureVisibleSectionsForAction(actionUUID);
-    applyTranslations();
-    populateFormFromSettings();
-
-    websocket = new WebSocket('ws://127.0.0.1:' + inPort);
-    websocket.onopen = function() {
-      websocket.send(JSON.stringify({ event: inRegisterEvent, uuid: piUUID }));
-    };
-
-    websocket.onmessage = function(evt) {
-      const msg = JSON.parse(evt.data);
-      if (msg.event === 'sendToPropertyInspector') {
-        const p = msg.payload;
-        if (p.language === 'de' || p.language === 'en') {
-          currentLang = p.language;
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Twitch Viewer Property Inspector v1.3.1</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #2d2d2d;
+            color: #e4e4e7;
+            margin: 0;
+            padding: 12px;
+            font-size: 12px;
         }
-        if (p.clientId !== undefined) {
-          document.getElementById('clientId').value = p.clientId;
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
         }
-        if (p.userLogin) {
-          setAuthUiState(true, p.userLogin);
-        } else if (p.event === 'loggedOut') {
-          setAuthUiState(false, '');
-          cachedChannels = [];
+        .lang-switch {
+            display: inline-flex;
+            background: #141417;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            overflow: hidden;
         }
-        if (Array.isArray(p.channels)) {
-          cachedChannels = p.channels;
+        .lang-btn {
+            width: auto;
+            background: transparent;
+            color: #a1a1aa;
+            padding: 3px 8px;
+            margin: 0;
+            font-size: 10px;
+            border-radius: 0;
         }
-        applyTranslations();
-
-        if (p.event === 'deviceCodeReady') {
-          const box = document.getElementById('device-code-display');
-          box.style.display = 'block';
-          box.style.fontSize = '15px';
-          box.style.color = '#facc15';
-          box.innerHTML = tr('codePrompt') + '<br><span style="font-size:20px;color:#fff;">' + p.userCode + '</span>';
+        .lang-btn.active {
+            background: #9146FF;
+            color: #ffffff;
         }
-        if (p.event === 'authError') {
-          const box = document.getElementById('device-code-display');
-          box.style.display = 'block';
-          box.style.fontSize = '11px';
-          box.style.color = '#f43f5e';
-          box.textContent = p.message;
-          document.getElementById('advanced-auth-details').open = true;
+        .card {
+            background: #202023;
+            border: 1px solid #3f3f46;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
         }
-      }
-    };
-  }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #a1a1aa;
+        }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            box-sizing: border-box;
+            background: #141417;
+            border: 1px solid #3f3f46;
+            color: #fff;
+            padding: 6px 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+            cursor: pointer;
+            font-weight: normal;
+            color: #e4e4e7;
+        }
+        button {
+            width: 100%;
+            background: #9146FF;
+            color: #fff;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 6px;
+        }
+        button:hover { background: #772CE8; }
+        button.secondary {
+            background: #3f3f46;
+            font-size: 11px;
+            padding: 6px;
+        }
+        button.secondary:hover { background: #52525b; }
+        button.danger {
+            background: #dc2626;
+            color: #ffffff;
+            font-size: 11px;
+            padding: 6px 10px;
+            margin-top: 4px;
+        }
+        button.danger:hover { background: #b91c1c; }
+        .hint {
+            font-size: 11px;
+            color: #a1a1aa;
+            line-height: 1.45;
+            margin-bottom: 8px;
+        }
+        .code-box {
+            background: #141417;
+            border: 1px dashed #9146FF;
+            padding: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #facc15;
+            margin-top: 6px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+        }
+        details {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #a1a1aa;
+            border-top: 1px solid #3f3f46;
+            padding-top: 8px;
+        }
+        summary {
+            cursor: pointer;
+            color: #c084fc;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        ol.guide-list {
+            margin: 4px 0 10px 16px;
+            padding: 0;
+            color: #d4d4d8;
+            line-height: 1.5;
+        }
+        code {
+            background: #141417;
+            padding: 1px 4px;
+            border-radius: 4px;
+            color: #facc15;
+        }
+    </style>
+</head>
+<body>
 
-  function setAuthUiState(isLoggedIn, userLogin) {
-    isUserConnected = Boolean(isLoggedIn);
-    connectedUserName = userLogin || '';
+    <div class="top-bar">
+        <span id="i18n-plugin-subtitle" style="font-size: 10px; color: #71717a; font-weight: 600; text-transform: uppercase;">
+            OpenDeck Sprache erkannt
+        </span>
+        <div class="lang-switch">
+            <button type="button" id="btn-lang-de" class="lang-btn active" onclick="switchLanguage('de')">DE</button>
+            <button type="button" id="btn-lang-en" class="lang-btn" onclick="switchLanguage('en')">EN</button>
+        </div>
+    </div>
 
-    const st = document.getElementById('auth-status');
-    const loginCtrl = document.getElementById('login-controls');
-    const logoutCtrl = document.getElementById('logout-controls');
-    const codeBox = document.getElementById('device-code-display');
+    <div class="card">
+        <label id="i18n-account-title">1. Twitch Konto (Account Login)</label>
+        <div id="auth-status" style="margin-bottom: 8px; color: #f59e0b; font-weight: bold;">Nicht verbunden</div>
 
-    if (isUserConnected) {
-      st.textContent = tr('connectedAs') + connectedUserName;
-      st.style.color = '#10b981';
-      loginCtrl.style.display = 'none';
-      logoutCtrl.style.display = 'block';
-      codeBox.style.display = 'none';
-    } else {
-      st.textContent = tr('notConnected');
-      st.style.color = '#f59e0b';
-      loginCtrl.style.display = 'block';
-      logoutCtrl.style.display = 'none';
-    }
-  }
+        <div id="login-controls">
+            <button id="i18n-btn-login" onclick="startDeviceLogin()">⚡ 1-Klick Twitch Login (mit 8-stelligem Code)</button>
+        </div>
 
-  function configureVisibleSectionsForAction(uuid) {
-    const isStreamer = uuid.endsWith('.streamer');
-    const isAutoSlot = uuid.endsWith('.autoslot');
-    const isChat = uuid.endsWith('.chatmacro');
-    const isMulti = uuid.endsWith('.multitwitch');
-    const isAutoPage = uuid.endsWith('.autopage');
+        <div id="logout-controls" style="display: none;">
+            <button id="i18n-btn-refresh" class="secondary" onclick="forceRefreshChannels()">🔄 Gefolgte Kanäle & Live-Status jetzt aktualisieren</button>
+            <button id="i18n-btn-logout" class="danger" onclick="logoutTwitch()">🚪 Vom Twitch-Konto abmelden (Logout)</button>
+        </div>
 
-    document.getElementById('section-streamer').style.display = (isStreamer || isAutoSlot) ? 'block' : 'none';
-    document.getElementById('streamer-select-wrap').style.display = isStreamer ? 'block' : 'none';
-    document.getElementById('autoslot-config-wrap').style.display = isAutoSlot ? 'block' : 'none';
+        <div id="device-code-display" class="code-box" style="display: none;"></div>
 
-    document.getElementById('section-overlays').style.display = (isStreamer || isAutoSlot) ? 'block' : 'none';
-    document.getElementById('section-press').style.display = (isStreamer || isAutoSlot) ? 'block' : 'none';
+        <details id="advanced-auth-details">
+            <summary id="i18n-adv-summary">⚙️ Erweiterte Login-Optionen / Eigene Client-ID (Optional)</summary>
+            <div id="i18n-adv-guide" class="hint"></div>
+            <label id="i18n-clientid-label">Twitch App Client-ID (Standard bereits hinterlegt):</label>
+            <input type="text" id="clientId" value="swyl7vd2qbrbq3hj8nuo8zkrywtyga" placeholder="swyl7vd2qbrbq3hj8nuo8zkrywtyga" onchange="saveClientId()">
+            <button id="i18n-btn-save-clientid" class="secondary" onclick="startDeviceLogin()">🔑 Client-ID speichern & Code-Login starten</button>
+        </details>
+    </div>
 
-    document.getElementById('section-chat').style.display = isChat ? 'block' : 'none';
-    document.getElementById('section-multitwitch').style.display = isMulti ? 'block' : 'none';
-    document.getElementById('section-autopage').style.display = isAutoPage ? 'block' : 'none';
-  }
+    <div id="section-streamer" class="card" style="display: none;">
+        <div id="streamer-select-wrap">
+            <label id="i18n-select-streamer">Gefolgten Streamer auswählen:</label>
+            <select id="streamerLogin" onchange="saveKeySettings()">
+                <option value="">--</option>
+            </select>
+        </div>
 
-  function updateChannelDropdowns(channels) {
-    const selectMain = document.getElementById('streamerLogin');
-    if (!channels || channels.length === 0) {
-      selectMain.innerHTML = '<option value="">' + tr('pleaseConnectFirst') + '</option>';
-    } else {
-      selectMain.innerHTML = channels.map(function(c) {
-        const sel = (c.login === currentSettings.streamerLogin) ? 'selected' : '';
-        const stateTxt = c.live ? '🟢 LIVE' : '⚫ OFF';
-        const gameTxt = c.live ? ' (' + c.game + ')' : '';
-        return '<option value="' + c.login + '" ' + sel + '>' + stateTxt + ' - ' + c.displayName + gameTxt + '</option>';
-      }).join('');
-    }
+        <div id="autoslot-config-wrap" style="display: none;">
+            <label id="i18n-autoslot-title">⚡ Dynamic Live Slot Verhalten:</label>
+            <label class="checkbox-row">
+                <input type="checkbox" id="autoRotate" checked onchange="saveKeySettings()">
+                <b id="i18n-autorotate-label">Automatisch durchschalten (alle 10 Sek.)</b>
+            </label>
+            <div id="i18n-autorotate-hint" class="hint"></div>
+            <label id="i18n-autopin-label">Oder festen Live-Platz anpinnen (0 = Auto-Rotation):</label>
+            <input type="number" id="autoIndex" min="0" max="64" value="0" onchange="saveKeySettings()">
+        </div>
+    </div>
 
-    const selectTarget = document.getElementById('targetChannelLogin');
-    selectTarget.innerHTML = '<option value="">' + tr('autoActiveStream') + '</option>' +
-    (channels || []).map(function(c) {
-      const sel = (c.login === currentSettings.streamerLogin) ? 'selected' : '';
-      const stateTxt = c.live ? '🟢 LIVE' : '⚫ OFF';
-      return '<option value="' + c.login + '" ' + sel + '>' + stateTxt + ' - ' + c.displayName + '</option>';
-    }).join('');
-  }
+    <div id="section-overlays" class="card" style="display: none;">
+        <label id="i18n-overlays-title">🎨 Icon-Elemente (100% Optional)</label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="grayscaleOffline" checked onchange="saveKeySettings()">
+            <span id="i18n-opt-gray">Offline-Profilbild in Graustufen</span>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="showLiveBorder" checked onchange="saveKeySettings()">
+            <span id="i18n-opt-border">Roter Rahmen wenn LIVE</span>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="showName" checked onchange="saveKeySettings()">
+            <span id="i18n-opt-name">Streamer-Name unten anzeigen</span>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="showViewers" checked onchange="saveKeySettings()">
+            <span id="i18n-opt-viewers">Zuschauerzahl oben anzeigen</span>
+        </label>
+        <label class="checkbox-row">
+            <input type="checkbox" id="showGame" onchange="saveKeySettings()">
+            <span id="i18n-opt-game">Aktuelles Spiel / Kategorie anzeigen</span>
+        </label>
+    </div>
 
-  function populateFormFromSettings() {
-    document.getElementById('autoRotate').checked = currentSettings.autoRotate !== false;
-    document.getElementById('autoIndex').value = currentSettings.autoIndex || 0;
-    document.getElementById('grayscaleOffline').checked = currentSettings.grayscaleOffline !== false;
-    document.getElementById('showLiveBorder').checked = currentSettings.showLiveBorder !== false;
-    document.getElementById('showName').checked = currentSettings.showName !== false;
-    document.getElementById('showViewers').checked = currentSettings.showViewers !== false;
-    document.getElementById('showGame').checked = currentSettings.showGame === true;
-    document.getElementById('shortPress').value = currentSettings.shortPress || 'browser';
-    document.getElementById('longPress').value = currentSettings.longPress || (actionUUID.endsWith('.autoslot') ? 'next_live' : 'chat');
-    document.getElementById('customCmd').value = currentSettings.customCmd || '';
-    document.getElementById('message').value = currentSettings.message || '!lurk';
-    document.getElementById('channels').value = currentSettings.channels || '';
-  }
+    <div id="section-press" class="card" style="display: none;">
+        <label id="i18n-shortpress-label">👆 Kurz drücken (Short Tap)</label>
+        <select id="shortPress" onchange="saveKeySettings()">
+            <option value="browser" id="i18n-sp-browser">🌐 Standard-Browser öffnen</option>
+            <option value="popout" id="i18n-sp-popout">🗔 Rahmenloser Popout-Player</option>
+            <option value="streamlink" id="i18n-sp-streamlink">🚀 Eigener Player / Streamlink / VLC</option>
+            <option value="chat" id="i18n-sp-chat">💬 Nur Popout-Chat öffnen</option>
+        </select>
 
-  function saveKeySettings() {
-    const isChat = actionUUID.endsWith('.chatmacro');
-    const chosenStreamer = isChat
-    ? document.getElementById('targetChannelLogin').value
-    : document.getElementById('streamerLogin').value;
+        <label id="i18n-longpress-label">⏳ Lang drücken >= 500ms (Long Hold)</label>
+        <select id="longPress" onchange="saveKeySettings()">
+            <option value="next_live" id="i18n-lp-next">⏭ Nächster Live-Streamer (Rotation)</option>
+            <option value="chat" id="i18n-lp-chat">💬 Nur Popout-Chat öffnen</option>
+            <option value="lurk" id="i18n-lp-lurk">🥷 !lurk Nachricht in den Chat senden</option>
+            <option value="streamlink" id="i18n-lp-streamlink">🚀 Streamlink / Externer Player</option>
+        </select>
 
-    currentSettings = {
-      streamerLogin: chosenStreamer,
-      autoRotate: document.getElementById('autoRotate').checked,
-      autoIndex: parseInt(document.getElementById('autoIndex').value, 10) || 0,
-      grayscaleOffline: document.getElementById('grayscaleOffline').checked,
-      showLiveBorder: document.getElementById('showLiveBorder').checked,
-      showName: document.getElementById('showName').checked,
-      showViewers: document.getElementById('showViewers').checked,
-      showGame: document.getElementById('showGame').checked,
-      shortPress: document.getElementById('shortPress').value,
-      longPress: document.getElementById('longPress').value,
-      customCmd: document.getElementById('customCmd').value,
-      message: document.getElementById('message').value,
-      channels: document.getElementById('channels').value
-    };
-    if (websocket) {
-      websocket.send(JSON.stringify({
-        event: 'setSettings',
-        context: piUUID,
-        payload: currentSettings
-      }));
-    }
-  }
+        <label id="i18n-customcmd-label">Eigener Player-Befehl (Platzhalter: {channel})</label>
+        <input type="text" id="customCmd" placeholder="streamlink https://twitch.tv/{channel} best" onchange="saveKeySettings()">
+    </div>
 
-  function saveClientId() {
-    const clientId = document.getElementById('clientId').value.trim();
-    if (!websocket) return;
-    websocket.send(JSON.stringify({
-      event: 'sendToPlugin',
-      action: actionUUID,
-      context: piUUID,
-      payload: { command: 'saveClientIdOnly', clientId }
-    }));
-  }
+    <div id="section-chat" class="card" style="display: none;">
+        <label id="i18n-chat-target-label">Ziel-Kanal für diese Taste (inkl. Kanal-Icon):</label>
+        <select id="targetChannelLogin" onchange="saveKeySettings()">
+            <option value="">🎯</option>
+        </select>
+        <div id="i18n-chat-hint" class="hint"></div>
 
-  function startDeviceLogin() {
-    const clientId = document.getElementById('clientId').value.trim();
-    if (!websocket) return;
-    websocket.send(JSON.stringify({
-      event: 'sendToPlugin',
-      action: actionUUID,
-      context: piUUID,
-      payload: { command: 'startDeviceAuth', clientId }
-    }));
-  }
+        <label id="i18n-chat-msg-label">Chat-Nachricht bei Tastendruck senden:</label>
+        <input type="text" id="message" value="!lurk" placeholder="!lurk" onchange="saveKeySettings()">
+    </div>
 
-  function logoutTwitch() {
-    if (!websocket) return;
-    websocket.send(JSON.stringify({
-      event: 'sendToPlugin',
-      action: actionUUID,
-      context: piUUID,
-      payload: { command: 'logoutTwitch' }
-    }));
-  }
+    <div id="section-multitwitch" class="card" style="display: none;">
+        <label id="i18n-multi-title">📺 Was macht MultiTwitch Split-Screen?</label>
+        <div id="i18n-multi-hint" class="hint"></div>
+        <label id="i18n-multi-input-label">Streamer-Namen (getrennt mit Leerzeichen oder +):</label>
+        <input type="text" id="channels" placeholder="gronkh + bonjwa + papaplatte" onchange="saveKeySettings()">
+    </div>
 
-  function forceRefreshChannels() {
-    if (!websocket) return;
-    websocket.send(JSON.stringify({
-      event: 'sendToPlugin',
-      action: actionUUID,
-      context: piUUID,
-      payload: { command: 'forceRefresh' }
-    }));
-  }
-  </script>
-  </body>
-  </html>
-  
+    <div id="section-autopage" class="card" style="display: none;">
+        <label id="i18n-autopage-title">⚡ Dynamic Live Switcher / Weiter-Taste</label>
+        <div id="i18n-autopage-hint" class="hint"></div>
+    </div>
+
+    <script>
+        let websocket = null;
+        let piUUID = null;
+        let actionUUID = '';
+        let currentSettings = {};
+        let currentLang = 'de';
+        let isUserConnected = false;
+        let connectedUserName = '';
+        let cachedChannels = [];
+
+        const TRANSLATIONS = {
+            de: {
+                subtitle: 'Sprache: Deutsch (OpenDeck)',
+                accountTitle: '1. Twitch Konto (Account Login)',
+                notConnected: 'Nicht verbunden',
+                connectedAs: '✔ Verbunden als: ',
+                btnLogin: '⚡ 1-Klick Twitch Login (mit 8-stelligem Code)',
+                btnRefresh: '🔄 Gefolgte Kanäle & Live-Status jetzt aktualisieren',
+                btnLogout: '🚪 Vom Twitch-Konto abmelden (Logout)',
+                codePrompt: 'Code auf twitch.tv/activate eingeben:',
+                advSummary: '⚙️ Erweiterte Login-Optionen / Eigene Client-ID (Optional)',
+                advGuide: '<b>Hinweis:</b> Eine offizielle Standard-Client-ID ist bereits vorinstalliert – du kannst oben sofort auf <b>1-Klick Twitch Login</b> klicken!<br><br><b>Optional: Eigene Twitch Client-ID erstellen:</b><ol class="guide-list"><li>Öffne <code>dev.twitch.tv/console/apps</code> und klicke auf <b>"Anwendung registrieren"</b>.</li><li>Name: z.B. <code>MeinOpenDeckViewer</code></li><li>OAuth-Weiterleitungs-URL: <code>http://localhost</code></li><li>Kategorie: <b>Application Integration</b> &rarr; Client-Typ: <b>Öffentlich (Public)</b>.</li><li>Kopiere die angezeigte <b>Client-ID</b> hier in das Feld:</li></ol>',
+                clientIdLabel: 'Twitch App Client-ID (Standard bereits hinterlegt):',
+                btnSaveClientId: '🔑 Client-ID speichern & Code-Login starten',
+                selectStreamer: 'Gefolgten Streamer auswählen:',
+                pleaseConnectFirst: '-- Bitte erst mit Twitch verbinden --',
+                autoslotTitle: '⚡ Dynamic Live Slot Verhalten:',
+                autorotateLabel: 'Automatisch durchschalten (alle 10 Sek.)',
+                autorotateHint: 'Wenn aktiv, rotiert diese Taste automatisch durch alle deine aktuell live streamenden Favoriten! (Lang-Druck schaltet sofort zum nächsten).',
+                autopinLabel: 'Oder festen Live-Platz anpinnen (0 = Auto-Rotation):',
+                overlaysTitle: '🎨 Icon-Elemente (100% Optional)',
+                optGray: 'Offline-Profilbild in Graustufen',
+                optBorder: 'Roter Rahmen wenn LIVE',
+                optName: 'Streamer-Name unten anzeigen',
+                optViewers: 'Zuschauerzahl oben anzeigen',
+                optGame: 'Aktuelles Spiel / Kategorie anzeigen',
+                shortPressLabel: '👆 Kurz drücken (Short Tap)',
+                spBrowser: '🌐 Standard-Browser öffnen',
+                spPopout: '🗔 Rahmenloser Popout-Player',
+                spStreamlink: '🚀 Eigener Player / Streamlink / VLC',
+                spChat: '💬 Nur Popout-Chat öffnen',
+                longPressLabel: '⏳ Lang drücken >= 500ms (Long Hold)',
+                lpNext: '⏭ Nächster Live-Streamer (Rotation)',
+                lpChat: '💬 Nur Popout-Chat öffnen',
+                lpLurk: '🥷 !lurk Nachricht in den Chat senden',
+                lpStreamlink: '🚀 Streamlink / Externer Player',
+                customCmdLabel: 'Eigener Player-Befehl (Platzhalter: {channel})',
+                chatTargetLabel: 'Ziel-Kanal für diese Taste (inkl. Kanal-Icon):',
+                autoActiveStream: '🎯 Automatisch: Aktiver / Zuletzt geöffneter Live-Stream',
+                chatHint: 'Das Profilbild des gewählten (oder aktuell aktiven) Streamers wird direkt auf der Taste angezeigt! Ein <b>kurzer Druck</b> sendet sofort die Nachricht.',
+                chatMsgLabel: 'Chat-Nachricht bei Tastendruck senden:',
+                multiTitle: '📺 Was macht MultiTwitch Split-Screen?',
+                multiHint: 'Wenn mehrere deiner Lieblingsstreamer gleichzeitig zusammen spielen (z.B. Turnier, Mario Kart, Rust), öffnet diese Taste <b>alle Streams nebeneinander in einem einzigen Fenster</b>!',
+                multiInputLabel: 'Streamer-Namen (getrennt mit Leerzeichen oder +):',
+                autopageTitle: '⚡ Dynamic Live Switcher / Weiter-Taste',
+                autopageHint: 'Diese Taste zeigt dir live an, <b>wie viele deiner Favoriten gerade online sind</b> (z.B. "6 LIVE").<br><br>Ein kurzer Druck darauf schaltet sofort alle <b>Dynamic Live Slots</b> auf deinem Deck einen Streamer weiter!'
+            },
+            en: {
+                subtitle: 'Language: English (OpenDeck)',
+                accountTitle: '1. Twitch Account Login',
+                notConnected: 'Not connected',
+                connectedAs: '✔ Connected as: ',
+                btnLogin: '⚡ 1-Click Twitch Login (with 8-digit Code)',
+                btnRefresh: '🔄 Refresh Followed Channels & Live Status Now',
+                btnLogout: '🚪 Disconnect Twitch Account (Logout)',
+                codePrompt: 'Enter code on twitch.tv/activate:',
+                advSummary: '⚙️ Advanced Login Options / Custom Client-ID (Optional)',
+                advGuide: '<b>Note:</b> A default Client-ID is pre-installed – you can click <b>1-Click Twitch Login</b> above right away!<br><br><b>Optional: Create your own free Twitch Client-ID:</b><ol class="guide-list"><li>Open <code>dev.twitch.tv/console/apps</code> and click <b>"Register Your Application"</b>.</li><li>Name: e.g. <code>MyOpenDeckViewer</code></li><li>OAuth Redirect URL: <code>http://localhost</code></li><li>Category: <b>Application Integration</b> &rarr; Client Type: <b>Public</b>.</li><li>Copy the generated <b>Client-ID</b> into the field below:</li></ol>',
+                clientIdLabel: 'Twitch App Client-ID (Default pre-configured):',
+                btnSaveClientId: '🔑 Save Client-ID & Start Code Login',
+                selectStreamer: 'Select Followed Streamer:',
+                pleaseConnectFirst: '-- Please connect with Twitch first --',
+                autoslotTitle: '⚡ Dynamic Live Slot Behavior:',
+                autorotateLabel: 'Auto-Rotate Live Streamers (every 10s)',
+                autorotateHint: 'When enabled, this key automatically cycles through all your currently live favorite streamers! (Hold key to skip to the next one immediately).',
+                autopinLabel: 'Or pin to fixed live slot index (0 = Auto-Rotate):',
+                overlaysTitle: '🎨 Icon Overlays (100% Optional)',
+                optGray: 'Convert offline avatar to grayscale',
+                optBorder: 'Red border when LIVE',
+                optName: 'Show streamer name at bottom',
+                optViewers: 'Show viewer count at top',
+                optGame: 'Show current game / category',
+                shortPressLabel: '👆 Short Press (Key Tap)',
+                spBrowser: '🌐 Open in Default Browser',
+                spPopout: '🗔 Borderless Popout Player',
+                spStreamlink: '🚀 Custom Player / Streamlink / VLC',
+                spChat: '💬 Open Popout Chat Only',
+                longPressLabel: '⏳ Long Press >= 500ms (Key Hold)',
+                lpNext: '⏭ Next Live Streamer (Cycle)',
+                lpChat: '💬 Open Popout Chat Only',
+                lpLurk: '🥷 Send !lurk message to chat',
+                lpStreamlink: '🚀 Streamlink / External Player',
+                customCmdLabel: 'Custom Player Command (Placeholder: {channel})',
+                chatTargetLabel: 'Target Channel for this Key (shows Avatar):',
+                autoActiveStream: '🎯 Automatic: Currently Active / Last Opened Stream',
+                chatHint: 'Displays the avatar of the selected (or currently active) streamer right on the key! A <b>short press</b> immediately sends your message.',
+                chatMsgLabel: 'Chat message to send on key press:',
+                multiTitle: '📺 What does MultiTwitch Split-Screen do?',
+                multiHint: 'When multiple favorite streamers are playing together (e.g., tournaments, Mario Kart, Rust), this key opens <b>all streams side-by-side in a single window</b>!',
+                multiInputLabel: 'Streamer names (separated by space or +):',
+                autopageTitle: '⚡ Dynamic Live Switcher / Next Key',
+                autopageHint: 'This key shows you live <b>how many of your followed channels are currently online</b> (e.g. "6 LIVE").<br><br>A short press immediately cycles all <b>Dynamic Live Slots</b> on your deck to the next streamer!'
+            }
+        };
+
+        function tr(key) {
+            const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            return dict[key] || TRANSLATIONS.en[key] || key;
+        }
+
+        function applyTranslations() {
+            document.documentElement.lang = currentLang;
+            document.getElementById('btn-lang-de').className = 'lang-btn ' + (currentLang === 'de' ? 'active' : '');
+            document.getElementById('btn-lang-en').className = 'lang-btn ' + (currentLang === 'en' ? 'active' : '');
+
+            document.getElementById('i18n-plugin-subtitle').textContent = tr('subtitle');
+            document.getElementById('i18n-account-title').textContent = tr('accountTitle');
+            document.getElementById('i18n-btn-login').textContent = tr('btnLogin');
+            document.getElementById('i18n-btn-refresh').textContent = tr('btnRefresh');
+            document.getElementById('i18n-btn-logout').textContent = tr('btnLogout');
+            document.getElementById('i18n-adv-summary').textContent = tr('advSummary');
+            document.getElementById('i18n-adv-guide').innerHTML = tr('advGuide');
+            document.getElementById('i18n-clientid-label').textContent = tr('clientIdLabel');
+            document.getElementById('i18n-btn-save-clientid').textContent = tr('btnSaveClientId');
+
+            document.getElementById('i18n-select-streamer').textContent = tr('selectStreamer');
+            document.getElementById('i18n-autoslot-title').textContent = tr('autoslotTitle');
+            document.getElementById('i18n-autorotate-label').textContent = tr('autorotateLabel');
+            document.getElementById('i18n-autorotate-hint').textContent = tr('autorotateHint');
+            document.getElementById('i18n-autopin-label').textContent = tr('autopinLabel');
+
+            document.getElementById('i18n-overlays-title').textContent = tr('overlaysTitle');
+            document.getElementById('i18n-opt-gray').textContent = tr('optGray');
+            document.getElementById('i18n-opt-border').textContent = tr('optBorder');
+            document.getElementById('i18n-opt-name').textContent = tr('optName');
+            document.getElementById('i18n-opt-viewers').textContent = tr('optViewers');
+            document.getElementById('i18n-opt-game').textContent = tr('optGame');
+
+            document.getElementById('i18n-shortpress-label').textContent = tr('shortPressLabel');
+            document.getElementById('i18n-sp-browser').textContent = tr('spBrowser');
+            document.getElementById('i18n-sp-popout').textContent = tr('spPopout');
+            document.getElementById('i18n-sp-streamlink').textContent = tr('spStreamlink');
+            document.getElementById('i18n-sp-chat').textContent = tr('spChat');
+
+            document.getElementById('i18n-longpress-label').textContent = tr('longPressLabel');
+            document.getElementById('i18n-lp-next').textContent = tr('lpNext');
+            document.getElementById('i18n-lp-chat').textContent = tr('lpChat');
+            document.getElementById('i18n-lp-lurk').textContent = tr('lpLurk');
+            document.getElementById('i18n-lp-streamlink').textContent = tr('lpStreamlink');
+            document.getElementById('i18n-customcmd-label').textContent = tr('customCmdLabel');
+
+            document.getElementById('i18n-chat-target-label').textContent = tr('chatTargetLabel');
+            document.getElementById('i18n-chat-hint').innerHTML = tr('chatHint');
+            document.getElementById('i18n-chat-msg-label').textContent = tr('chatMsgLabel');
+
+            document.getElementById('i18n-multi-title').textContent = tr('multiTitle');
+            document.getElementById('i18n-multi-hint').innerHTML = tr('multiHint');
+            document.getElementById('i18n-multi-input-label').textContent = tr('multiInputLabel');
+
+            document.getElementById('i18n-autopage-title').textContent = tr('autopageTitle');
+            document.getElementById('i18n-autopage-hint').innerHTML = tr('autopageHint');
+
+            setAuthUiState(isUserConnected, connectedUserName);
+            updateChannelDropdowns(cachedChannels);
+        }
+
+        function switchLanguage(lang) {
+            currentLang = (lang === 'de') ? 'de' : 'en';
+            applyTranslations();
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    event: 'sendToPlugin',
+                    action: actionUUID,
+                    context: piUUID,
+                    payload: { command: 'setLanguage', language: currentLang }
+                }));
+            }
+        }
+
+        function connectElgatoStreamDeckSocket(inPort, inPropertyInspectorUUID, inRegisterEvent, inInfo, inActionInfo) {
+            piUUID = inPropertyInspectorUUID;
+
+            try {
+                const infoObj = JSON.parse(inInfo);
+                const sdkLang = String(infoObj?.application?.language || navigator.language || 'de').toLowerCase();
+                currentLang = sdkLang.startsWith('de') ? 'de' : 'en';
+            } catch (e) {
+                const navLang = String(navigator.language || 'de').toLowerCase();
+                currentLang = navLang.startsWith('de') ? 'de' : 'en';
+            }
+
+            const actionData = JSON.parse(inActionInfo);
+            actionUUID = actionData.action;
+            currentSettings = actionData.payload.settings || {};
+
+            configureVisibleSectionsForAction(actionUUID);
+            applyTranslations();
+            populateFormFromSettings();
+
+            websocket = new WebSocket('ws://127.0.0.1:' + inPort);
+            websocket.onopen = function() {
+                websocket.send(JSON.stringify({ event: inRegisterEvent, uuid: piUUID }));
+            };
+
+            websocket.onmessage = function(evt) {
+                const msg = JSON.parse(evt.data);
+                if (msg.event === 'sendToPropertyInspector') {
+                    const p = msg.payload;
+                    if (p.language === 'de' || p.language === 'en') {
+                        currentLang = p.language;
+                    }
+                    if (p.clientId !== undefined && p.clientId !== '') {
+                        document.getElementById('clientId').value = p.clientId;
+                    }
+                    if (p.userLogin) {
+                        setAuthUiState(true, p.userLogin);
+                    } else if (p.event === 'loggedOut') {
+                        setAuthUiState(false, '');
+                        cachedChannels = [];
+                    }
+                    if (Array.isArray(p.channels)) {
+                        cachedChannels = p.channels;
+                    }
+                    applyTranslations();
+
+                    if (p.event === 'deviceCodeReady') {
+                        const box = document.getElementById('device-code-display');
+                        box.style.display = 'block';
+                        box.style.fontSize = '15px';
+                        box.style.color = '#facc15';
+                        box.innerHTML = tr('codePrompt') + '<br><span style="font-size:20px;color:#fff;">' + p.userCode + '</span>';
+                    }
+                    if (p.event === 'authError') {
+                        const box = document.getElementById('device-code-display');
+                        box.style.display = 'block';
+                        box.style.fontSize = '11px';
+                        box.style.color = '#f43f5e';
+                        box.textContent = p.message;
+                        document.getElementById('advanced-auth-details').open = true;
+                    }
+                }
+            };
+        }
+
+        function setAuthUiState(isLoggedIn, userLogin) {
+            isUserConnected = Boolean(isLoggedIn);
+            connectedUserName = userLogin || '';
+
+            const st = document.getElementById('auth-status');
+            const loginCtrl = document.getElementById('login-controls');
+            const logoutCtrl = document.getElementById('logout-controls');
+            const codeBox = document.getElementById('device-code-display');
+
+            if (isUserConnected) {
+                st.textContent = tr('connectedAs') + connectedUserName;
+                st.style.color = '#10b981';
+                loginCtrl.style.display = 'none';
+                logoutCtrl.style.display = 'block';
+                codeBox.style.display = 'none';
+            } else {
+                st.textContent = tr('notConnected');
+                st.style.color = '#f59e0b';
+                loginCtrl.style.display = 'block';
+                logoutCtrl.style.display = 'none';
+            }
+        }
+
+        function configureVisibleSectionsForAction(uuid) {
+            const isStreamer = uuid.endsWith('.streamer');
+            const isAutoSlot = uuid.endsWith('.autoslot');
+            const isChat = uuid.endsWith('.chatmacro');
+            const isMulti = uuid.endsWith('.multitwitch');
+            const isAutoPage = uuid.endsWith('.autopage');
+
+            document.getElementById('section-streamer').style.display = (isStreamer || isAutoSlot) ? 'block' : 'none';
+            document.getElementById('streamer-select-wrap').style.display = isStreamer ? 'block' : 'none';
+            document.getElementById('autoslot-config-wrap').style.display = isAutoSlot ? 'block' : 'none';
+
+            document.getElementById('section-overlays').style.display = (isStreamer || isAutoSlot) ? 'block' : 'none';
+            document.getElementById('section-press').style.display = (isStreamer || isAutoSlot) ? 'block' : 'none';
+
+            document.getElementById('section-chat').style.display = isChat ? 'block' : 'none';
+            document.getElementById('section-multitwitch').style.display = isMulti ? 'block' : 'none';
+            document.getElementById('section-autopage').style.display = isAutoPage ? 'block' : 'none';
+        }
+
+        function updateChannelDropdowns(channels) {
+            const selectMain = document.getElementById('streamerLogin');
+            if (!channels || channels.length === 0) {
+                selectMain.innerHTML = '<option value="">' + tr('pleaseConnectFirst') + '</option>';
+            } else {
+                selectMain.innerHTML = channels.map(function(c) {
+                    const sel = (c.login === currentSettings.streamerLogin) ? 'selected' : '';
+                    const stateTxt = c.live ? '🟢 LIVE' : '⚫ OFF';
+                    const gameTxt = c.live ? ' (' + c.game + ')' : '';
+                    return '<option value="' + c.login + '" ' + sel + '>' + stateTxt + ' - ' + c.displayName + gameTxt + '</option>';
+                }).join('');
+            }
+
+            const selectTarget = document.getElementById('targetChannelLogin');
+            selectTarget.innerHTML = '<option value="">' + tr('autoActiveStream') + '</option>' +
+                (channels || []).map(function(c) {
+                    const sel = (c.login === currentSettings.streamerLogin) ? 'selected' : '';
+                    const stateTxt = c.live ? '🟢 LIVE' : '⚫ OFF';
+                    return '<option value="' + c.login + '" ' + sel + '>' + stateTxt + ' - ' + c.displayName + '</option>';
+                }).join('');
+        }
+
+        function populateFormFromSettings() {
+            document.getElementById('autoRotate').checked = currentSettings.autoRotate !== false;
+            document.getElementById('autoIndex').value = currentSettings.autoIndex || 0;
+            document.getElementById('grayscaleOffline').checked = currentSettings.grayscaleOffline !== false;
+            document.getElementById('showLiveBorder').checked = currentSettings.showLiveBorder !== false;
+            document.getElementById('showName').checked = currentSettings.showName !== false;
+            document.getElementById('showViewers').checked = currentSettings.showViewers !== false;
+            document.getElementById('showGame').checked = currentSettings.showGame === true;
+            document.getElementById('shortPress').value = currentSettings.shortPress || 'browser';
+            document.getElementById('longPress').value = currentSettings.longPress || (actionUUID.endsWith('.autoslot') ? 'next_live' : 'chat');
+            document.getElementById('customCmd').value = currentSettings.customCmd || '';
+            document.getElementById('message').value = currentSettings.message || '!lurk';
+            document.getElementById('channels').value = currentSettings.channels || '';
+        }
+
+        function saveKeySettings() {
+            const isChat = actionUUID.endsWith('.chatmacro');
+            const chosenStreamer = isChat
+                ? document.getElementById('targetChannelLogin').value
+                : document.getElementById('streamerLogin').value;
+
+            currentSettings = {
+                streamerLogin: chosenStreamer,
+                autoRotate: document.getElementById('autoRotate').checked,
+                autoIndex: parseInt(document.getElementById('autoIndex').value, 10) || 0,
+                grayscaleOffline: document.getElementById('grayscaleOffline').checked,
+                showLiveBorder: document.getElementById('showLiveBorder').checked,
+                showName: document.getElementById('showName').checked,
+                showViewers: document.getElementById('showViewers').checked,
+                showGame: document.getElementById('showGame').checked,
+                shortPress: document.getElementById('shortPress').value,
+                longPress: document.getElementById('longPress').value,
+                customCmd: document.getElementById('customCmd').value,
+                message: document.getElementById('message').value,
+                channels: document.getElementById('channels').value
+            };
+            if (websocket) {
+                websocket.send(JSON.stringify({
+                    event: 'setSettings',
+                    context: piUUID,
+                    payload: currentSettings
+                }));
+            }
+        }
+
+        function saveClientId() {
+            const clientId = document.getElementById('clientId').value.trim();
+            if (!websocket) return;
+            websocket.send(JSON.stringify({
+                event: 'sendToPlugin',
+                action: actionUUID,
+                context: piUUID,
+                payload: { command: 'saveClientIdOnly', clientId }
+            }));
+        }
+
+        function startDeviceLogin() {
+            const clientId = document.getElementById('clientId').value.trim();
+            if (!websocket) return;
+            websocket.send(JSON.stringify({
+                event: 'sendToPlugin',
+                action: actionUUID,
+                context: piUUID,
+                payload: { command: 'startDeviceAuth', clientId }
+            }));
+        }
+
+        function logoutTwitch() {
+            if (!websocket) return;
+            websocket.send(JSON.stringify({
+                event: 'sendToPlugin',
+                action: actionUUID,
+                context: piUUID,
+                payload: { command: 'logoutTwitch' }
+            }));
+        }
+
+        function forceRefreshChannels() {
+            if (!websocket) return;
+            websocket.send(JSON.stringify({
+                event: 'sendToPlugin',
+                action: actionUUID,
+                context: piUUID,
+                payload: { command: 'forceRefresh' }
+            }));
+        }
+    </script>
+</body>
+</html>

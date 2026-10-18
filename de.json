@@ -1,23 +1,23 @@
 {
   "Description": "Ultimatives Twitch-Zuschauer-Plugin (Live-Icons, Auto-Rotierende Live-Slots, Live-Switcher, !lurk Schnell-Chat & MultiTwitch)",
   "Category": "Twitch Viewer",
-  "com.community.twitchviewer.streamer": {
+  "xyz.enfalion.twitchviewer.streamer": {
     "Name": "Favoriten-Streamer (Live-Status)",
     "Tooltip": "Zeigt das Profilbild eines Streamers (Grau = Offline, Farbig = Live + 100% optionale Infos)"
   },
-  "com.community.twitchviewer.autoslot": {
+  "xyz.enfalion.twitchviewer.autoslot": {
     "Name": "Dynamischer Live-Slot (Auto-Rotierend)",
     "Tooltip": "Zeigt deine aktuell live streamenden Favoriten und rotiert auf Wunsch automatisch durch"
   },
-  "com.community.twitchviewer.autopage": {
+  "xyz.enfalion.twitchviewer.autopage": {
     "Name": "Dynamic Live Switcher (Weiter)",
     "Tooltip": "Zeigt an wie viele Favoriten live sind & schaltet alle Live-Slots beim Drücken weiter"
   },
-  "com.community.twitchviewer.chatmacro": {
+  "xyz.enfalion.twitchviewer.chatmacro": {
     "Name": "Schnell-Chat / !lurk (Mit Kanal-Icon)",
     "Tooltip": "Zeigt das Kanal-Icon & sendet bei kurzem Druck sofort !lurk oder Text in den Chat"
   },
-  "com.community.twitchviewer.multitwitch": {
+  "xyz.enfalion.twitchviewer.multitwitch": {
     "Name": "MultiTwitch Split-Screen",
     "Tooltip": "Öffnet 2 bis 4 Streamer gleichzeitig nebeneinander in einem Browser-Fenster"
   }
