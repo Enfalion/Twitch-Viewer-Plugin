@@ -1,28 +1,49 @@
 #!/usr/bin/env node
 /**
  * ============================================================================
- * OPENDECK TWITCH VIEWER PLUGIN v1.3.2 - MAIN BACKEND (bin/plugin.js)
+ * OPENDECK TWITCH VIEWER PLUGIN v1.3.4 - MAIN BACKEND (bin/plugin.js)
  * Author: Enfalion (https://github.com/Enfalion/Twitch-Viewer-Plugin)
  * Bundle-ID: xyz.enfalion.twitchviewer
- * NEW IN v1.3.2:
- * - Stores OAuth refresh_token and automatically renews expired access_tokens
- *   in the background so users never get logged out after ~4 hours.
+ *
+ * DE: Hauptprogramm des Plugins (v1.3.4):
+ *     - Offizielle Public Client-ID (nglaah171uy4d4p4fbogi2au3w3oj7) für
+ *       vollautomatischen OAuth2 Token-Refresh alle 4 Stunden ohne Secret.
+ *     - Unterstützt optional eigene Entwickler-Client-IDs & Client-Secrets.
+ *     - Lokales Token-Backup & 12s Fetch-Timeouts gegen Netzwerk-Aussetzer.
+ *
+ * EN: Main backend of the plugin (v1.3.4):
+ *     - Official Public Client-ID (nglaah171uy4d4p4fbogi2au3w3oj7) enabling
+ *       seamless OAuth2 refresh_token rotation without a client secret.
+ *     - Supports optional custom developer Client-IDs & Client-Secrets.
+ *     - Local token persistence & 12s fetch timeouts for rock-solid stability.
  * ============================================================================
  */
 
 import WebSocket from 'ws';
 import { exec } from 'child_process';
 import os from 'os';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const DEFAULT_CLIENT_ID = 'swyl7vd2qbrbq3hj8nuo8zkrywtyga';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PLUGIN_ROOT = path.resolve(__dirname, '..');
+const AUTH_BACKUP_PATH = path.join(PLUGIN_ROOT, 'auth-backup.json');
+
+const DEFAULT_CLIENT_ID = 'nglaah171uy4d4p4fbogi2au3w3oj7';
+const LEGACY_CONFIDENTIAL_CLIENT_ID = 'swyl7vd2qbrbq3hj8nuo8zkrywtyga';
+const DEFAULT_CLIENT_SECRET = '';
 const HOLD_THRESHOLD_MS = 500;
 const POLL_INTERVAL_MS = 45000;
+const FETCH_TIMEOUT_MS = 12000;
 
 let ws = null;
 let pluginUUID = null;
 let activeDevicePollTimer = null;
 let appLanguage = 'de';
 let isRefreshingToken = false;
+let isPolling = false;
 
 const I18N_BACKEND = {
     de: {
@@ -52,6 +73,7 @@ function t(key) {
 
 let globalSettings = {
     clientId: DEFAULT_CLIENT_ID,
+    clientSecret: DEFAULT_CLIENT_SECRET,
     accessToken: '',
     refreshToken: '',
     userId: '',
@@ -59,10 +81,50 @@ let globalSettings = {
     languageOverride: ''
 };
 
+function normalizeClientId(cid) {
+    const trimmed = (cid || '').trim();
+    if (!trimmed || trimmed === LEGACY_CONFIDENTIAL_CLIENT_ID) {
+        return DEFAULT_CLIENT_ID;
+    }
+    return trimmed;
+}
+
+function saveLocalAuthBackup() {
+    try {
+        fs.writeFileSync(AUTH_BACKUP_PATH, JSON.stringify(globalSettings, null, 2), 'utf8');
+    } catch (e) {}
+}
+
+function loadLocalAuthBackup() {
+    try {
+        if (fs.existsSync(AUTH_BACKUP_PATH)) {
+            const raw = fs.readFileSync(AUTH_BACKUP_PATH, 'utf8');
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+                if (parsed.clientId === LEGACY_CONFIDENTIAL_CLIENT_ID) {
+                    parsed.clientId = DEFAULT_CLIENT_ID;
+                    parsed.accessToken = '';
+                    parsed.refreshToken = '';
+                    parsed.userId = '';
+                    parsed.userLogin = '';
+                } else {
+                    parsed.clientId = normalizeClientId(parsed.clientId);
+                }
+                return parsed;
+            }
+        }
+    } catch (e) {}
+    return null;
+}
+
 function getEffectiveClientId() {
-    return (globalSettings.clientId && globalSettings.clientId.trim() !== '')
-        ? globalSettings.clientId.trim()
-        : DEFAULT_CLIENT_ID;
+    return normalizeClientId(globalSettings.clientId);
+}
+
+function getEffectiveClientSecret() {
+    return (globalSettings.clientSecret && globalSettings.clientSecret.trim() !== '')
+        ? globalSettings.clientSecret.trim()
+        : DEFAULT_CLIENT_SECRET;
 }
 
 const visibleContexts = new Map();
@@ -72,6 +134,19 @@ const avatarBase64Cache = new Map();
 
 let dynamicLiveOffset = 0;
 let lastActiveChannelLogin = '';
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return res;
+    } catch (err) {
+        clearTimeout(id);
+        throw err;
+    }
+}
 
 function launchStreamOrPlayer(channelLogin, mode = 'browser', customCmd = '') {
     if (!channelLogin) return;
@@ -120,7 +195,7 @@ async function getAvatarBase64(avatarUrl) {
         return avatarBase64Cache.get(avatarUrl);
     }
     try {
-        const res = await fetch(avatarUrl);
+        const res = await fetchWithTimeout(avatarUrl, {}, 8000);
         const arrayBuffer = await res.arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString('base64');
         const mime = res.headers.get('content-type') || 'image/jpeg';
@@ -299,24 +374,55 @@ function renderMultiTwitchKeySvg(channelsStr = '') {
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
-/**
- * DE: Erneuert den abgelaufenen Twitch Access-Token automatisch über den Refresh-Token.
- * EN: Automatically refreshes an expired Twitch access token using the stored refresh token.
- */
+async function validateAndProactivelyRefreshToken() {
+    if (!globalSettings.accessToken) return false;
+    try {
+        const res = await fetchWithTimeout('https://id.twitch.tv/oauth2/validate', {
+            headers: { 'Authorization': `OAuth ${globalSettings.accessToken}` }
+        });
+        if (res.status === 200) {
+            const data = await res.json();
+            if (data.client_id === LEGACY_CONFIDENTIAL_CLIENT_ID) {
+                globalSettings.accessToken = '';
+                globalSettings.refreshToken = '';
+                globalSettings.userId = '';
+                globalSettings.userLogin = '';
+                saveGlobalSettings();
+                return false;
+            }
+            const expiresIn = data.expires_in || 0;
+            if (expiresIn < 1800 && globalSettings.refreshToken) {
+                await refreshTwitchAccessToken();
+            }
+            return true;
+        } else {
+            return await refreshTwitchAccessToken();
+        }
+    } catch (err) {
+        return false;
+    }
+}
+
 async function refreshTwitchAccessToken() {
     if (isRefreshingToken) return false;
     const cid = getEffectiveClientId();
-    if (!cid || !globalSettings.refreshToken) {
-        return false;
-    }
+    const csecret = getEffectiveClientSecret();
+    if (!cid || !globalSettings.refreshToken) return false;
 
     isRefreshingToken = true;
     try {
-        const body = `client_id=${encodeURIComponent(cid)}&grant_type=refresh_token&refresh_token=${encodeURIComponent(globalSettings.refreshToken)}`;
-        const res = await fetch('https://id.twitch.tv/oauth2/token', {
+        const params = new URLSearchParams();
+        params.append('client_id', cid);
+        if (csecret) {
+            params.append('client_secret', csecret);
+        }
+        params.append('grant_type', 'refresh_token');
+        params.append('refresh_token', globalSettings.refreshToken);
+
+        const res = await fetchWithTimeout('https://id.twitch.tv/oauth2/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body
+            body: params.toString()
         });
         const data = await res.json();
 
@@ -326,23 +432,14 @@ async function refreshTwitchAccessToken() {
                 globalSettings.refreshToken = data.refresh_token;
             }
             saveGlobalSettings();
-            console.log('[Twitch-Auth] Access token automatically refreshed via refresh_token.');
             isRefreshingToken = false;
             return true;
         }
-    } catch (err) {
-        console.error('[Twitch-Auth] Token refresh failed:', err.message);
-    }
+    } catch (err) {}
     isRefreshingToken = false;
     return false;
 }
 
-/**
- * DE: Wrapper für Twitch Helix API-Aufrufe – fängt 401 (Token abgelaufen) automatisch ab,
- *     erneuert den Token im Hintergrund und wiederholt die Anfrage sofort.
- * EN: Wrapper for Twitch Helix API requests – intercepts 401 Unauthorized, refreshes
- *     the token seamlessly, and retries the request once.
- */
 async function twitchHelixFetch(url, options = {}) {
     const cid = getEffectiveClientId();
     const makeHeaders = () => ({
@@ -351,18 +448,22 @@ async function twitchHelixFetch(url, options = {}) {
         'Authorization': `Bearer ${globalSettings.accessToken}`
     });
 
-    let res = await fetch(url, { ...options, headers: makeHeaders() });
+    let res = await fetchWithTimeout(url, { ...options, headers: makeHeaders() });
     if (res.status === 401 && globalSettings.refreshToken) {
         const refreshed = await refreshTwitchAccessToken();
         if (refreshed) {
-            res = await fetch(url, { ...options, headers: makeHeaders() });
+            res = await fetchWithTimeout(url, { ...options, headers: makeHeaders() });
         }
     }
     return res;
 }
 
-async function startTwitchDeviceAuth(clientIdInput, piContext) {
-    const clientId = (clientIdInput || getEffectiveClientId()).trim();
+async function startTwitchDeviceAuth(clientIdInput, clientSecretInput, piContext) {
+    const clientId = normalizeClientId(clientIdInput || getEffectiveClientId());
+    globalSettings.clientId = clientId;
+    if (clientSecretInput !== undefined) {
+        globalSettings.clientSecret = clientSecretInput.trim();
+    }
     if (!clientId) {
         sendToPropertyInspector(piContext, {
             event: 'authError',
@@ -378,7 +479,7 @@ async function startTwitchDeviceAuth(clientIdInput, piContext) {
 
     try {
         const scopes = encodeURIComponent('user:read:follows user:write:chat');
-        const res = await fetch('https://id.twitch.tv/oauth2/device', {
+        const res = await fetchWithTimeout('https://id.twitch.tv/oauth2/device', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `client_id=${encodeURIComponent(clientId)}&scopes=${scopes}`
@@ -403,7 +504,7 @@ async function startTwitchDeviceAuth(clientIdInput, piContext) {
 
         activeDevicePollTimer = setInterval(async () => {
             try {
-                const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
+                const tokenRes = await fetchWithTimeout('https://id.twitch.tv/oauth2/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: `client_id=${encodeURIComponent(clientId)}&device_code=${encodeURIComponent(data.device_code)}&grant_type=urn:ietf:params:oauth:grant-type:device_code`
@@ -422,12 +523,7 @@ async function startTwitchDeviceAuth(clientIdInput, piContext) {
                     saveGlobalSettings();
                     await refreshTwitchDataAndRenderAll();
 
-                    sendToPropertyInspector(piContext, {
-                        event: 'authSuccess',
-                        userLogin: globalSettings.userLogin,
-                        clientId: getEffectiveClientId(),
-                        channels: followedChannelsCache
-                    });
+                    sendInspectorState(piContext, 'authSuccess');
                 }
             } catch (e) {}
         }, (data.interval || 5) * 1000);
@@ -442,6 +538,7 @@ function logoutTwitchAccount(piContext) {
         activeDevicePollTimer = null;
     }
 
+    globalSettings.clientId = normalizeClientId(globalSettings.clientId);
     globalSettings.accessToken = '';
     globalSettings.refreshToken = '';
     globalSettings.userId = '';
@@ -452,32 +549,34 @@ function logoutTwitchAccount(piContext) {
     saveGlobalSettings();
     renderAllVisibleKeys();
 
-    sendToPropertyInspector(piContext, {
-        event: 'loggedOut',
-        clientId: getEffectiveClientId()
-    });
+    sendInspectorState(piContext, 'loggedOut');
 }
 
 async function fetchCurrentTwitchUser() {
-    const res = await twitchHelixFetch('https://api.twitch.tv/helix/users');
-    const json = await res.json();
-    if (json.data && json.data[0]) {
-        globalSettings.userId = json.data[0].id;
-        globalSettings.userLogin = json.data[0].display_name;
-    }
+    try {
+        const res = await twitchHelixFetch('https://api.twitch.tv/helix/users');
+        const json = await res.json();
+        if (json.data && json.data[0]) {
+            globalSettings.userId = json.data[0].id;
+            globalSettings.userLogin = json.data[0].display_name;
+        }
+    } catch (err) {}
 }
 
 async function refreshTwitchDataAndRenderAll() {
+    if (isPolling) return;
     const cid = getEffectiveClientId();
     if (!cid || !globalSettings.accessToken) {
         renderAllVisibleKeys();
         return;
     }
 
+    isPolling = true;
     try {
         if (!globalSettings.userId) {
             await fetchCurrentTwitchUser();
             if (!globalSettings.userId) {
+                isPolling = false;
                 renderAllVisibleKeys();
                 return;
             }
@@ -487,13 +586,17 @@ async function refreshTwitchDataAndRenderAll() {
             `https://api.twitch.tv/helix/channels/followed?user_id=${globalSettings.userId}&first=100`
         );
         if (!followedRes.ok) {
+            isPolling = false;
             renderAllVisibleKeys();
             return;
         }
         const followedJson = await followedRes.json();
         const followedList = followedJson.data || [];
 
-        if (followedList.length === 0) return;
+        if (followedList.length === 0) {
+            isPolling = false;
+            return;
+        }
 
         const broadcasterIds = followedList.map(c => c.broadcaster_id);
 
@@ -542,6 +645,8 @@ async function refreshTwitchDataAndRenderAll() {
         renderAllVisibleKeys();
     } catch (err) {
         console.error('[Twitch-API] Poll error:', err.message);
+    } finally {
+        isPolling = false;
     }
 }
 
@@ -567,9 +672,7 @@ async function sendQuickChatMessage(channelLogin, messageText, context) {
     try {
         const res = await twitchHelixFetch('https://api.twitch.tv/helix/chat/messages', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 broadcaster_id: targetChannel.id,
                 sender_id: globalSettings.userId,
@@ -760,6 +863,7 @@ function sendShowAlert(context) {
 }
 
 function saveGlobalSettings() {
+    saveLocalAuthBackup();
     sendJson({ event: 'setGlobalSettings', context: pluginUUID, payload: globalSettings });
 }
 
@@ -767,7 +871,23 @@ function sendToPropertyInspector(context, payload) {
     sendJson({ event: 'sendToPropertyInspector', context, payload });
 }
 
+function sendInspectorState(context, eventName = 'initInspector') {
+    sendToPropertyInspector(context, {
+        event: eventName,
+        userLogin: globalSettings.userLogin,
+        clientId: getEffectiveClientId(),
+        clientSecret: getEffectiveClientSecret(),
+        language: appLanguage,
+        channels: followedChannelsCache
+    });
+}
+
 function startOpenDeckPlugin() {
+    const backup = loadLocalAuthBackup();
+    if (backup && backup.accessToken) {
+        globalSettings = { ...globalSettings, ...backup };
+    }
+
     const args = process.argv.slice(2);
     let port = null;
     let registerEvent = null;
@@ -804,6 +924,7 @@ function startOpenDeckPlugin() {
         sendJson({ event: 'getGlobalSettings', context: pluginUUID });
 
         setInterval(refreshTwitchDataAndRenderAll, POLL_INTERVAL_MS);
+        setInterval(validateAndProactivelyRefreshToken, 15 * 60 * 1000);
 
         setInterval(() => {
             const liveCount = followedChannelsCache.filter(c => c.live).length;
@@ -829,19 +950,42 @@ function startOpenDeckPlugin() {
             const { event, context, action, payload } = msg;
 
             switch (event) {
-                case 'didReceiveGlobalSettings':
-                    globalSettings = {
-                        ...globalSettings,
-                        ...(payload.settings || {}),
-                        clientId: (payload.settings?.clientId && payload.settings.clientId.trim() !== '')
-                            ? payload.settings.clientId.trim()
-                            : DEFAULT_CLIENT_ID
-                    };
+                case 'didReceiveGlobalSettings': {
+                    const incoming = payload.settings || {};
+                    const wasLegacyId = incoming.clientId === LEGACY_CONFIDENTIAL_CLIENT_ID;
+                    const effectiveClientId = normalizeClientId(incoming.clientId || globalSettings.clientId);
+
+                    if (wasLegacyId) {
+                        globalSettings = {
+                            ...globalSettings,
+                            clientId: DEFAULT_CLIENT_ID,
+                            accessToken: '',
+                            refreshToken: '',
+                            userId: '',
+                            userLogin: ''
+                        };
+                        saveGlobalSettings();
+                    } else {
+                        globalSettings = {
+                            ...globalSettings,
+                            ...incoming,
+                            clientId: effectiveClientId,
+                            accessToken: incoming.accessToken || globalSettings.accessToken || '',
+                            refreshToken: incoming.refreshToken || globalSettings.refreshToken || '',
+                            userId: incoming.userId || globalSettings.userId || '',
+                            userLogin: incoming.userLogin || globalSettings.userLogin || '',
+                            clientSecret: incoming.clientSecret || globalSettings.clientSecret || DEFAULT_CLIENT_SECRET
+                        };
+                        saveLocalAuthBackup();
+                    }
+
                     if (globalSettings.languageOverride === 'de' || globalSettings.languageOverride === 'en') {
                         appLanguage = globalSettings.languageOverride;
                     }
+                    await validateAndProactivelyRefreshToken();
                     await refreshTwitchDataAndRenderAll();
                     break;
+                }
 
                 case 'willAppear':
                     visibleContexts.set(context, {
@@ -864,21 +1008,19 @@ function startOpenDeckPlugin() {
                     break;
 
                 case 'propertyInspectorDidAppear':
-                    sendToPropertyInspector(context, {
-                        event: 'initInspector',
-                        userLogin: globalSettings.userLogin,
-                        clientId: getEffectiveClientId(),
-                        language: appLanguage,
-                        channels: followedChannelsCache
-                    });
+                    sendInspectorState(context, 'initInspector');
                     break;
 
                 case 'sendToPlugin':
                     if (payload.command === 'startDeviceAuth') {
-                        startTwitchDeviceAuth(payload.clientId, context);
-                    } else if (payload.command === 'saveClientIdOnly') {
-                        globalSettings.clientId = (payload.clientId || '').trim() || DEFAULT_CLIENT_ID;
+                        startTwitchDeviceAuth(payload.clientId, payload.clientSecret, context);
+                    } else if (payload.command === 'saveClientCredentials') {
+                        globalSettings.clientId = normalizeClientId(payload.clientId);
+                        if (payload.clientSecret !== undefined) {
+                            globalSettings.clientSecret = payload.clientSecret.trim();
+                        }
                         saveGlobalSettings();
+                        sendInspectorState(context, 'initInspector');
                     } else if (payload.command === 'setLanguage') {
                         if (payload.language === 'de' || payload.language === 'en') {
                             appLanguage = payload.language;
@@ -889,14 +1031,9 @@ function startOpenDeckPlugin() {
                     } else if (payload.command === 'logoutTwitch') {
                         logoutTwitchAccount(context);
                     } else if (payload.command === 'forceRefresh') {
+                        await validateAndProactivelyRefreshToken();
                         await refreshTwitchDataAndRenderAll();
-                        sendToPropertyInspector(context, {
-                            event: 'initInspector',
-                            userLogin: globalSettings.userLogin,
-                            clientId: getEffectiveClientId(),
-                            language: appLanguage,
-                            channels: followedChannelsCache
-                        });
+                        sendInspectorState(context, 'initInspector');
                     }
                     break;
 

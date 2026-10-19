@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Twitch Viewer Property Inspector v1.3.2</title>
+    <title>Twitch Viewer Property Inspector v1.3.4</title>
     <style>
         :root {
             color-scheme: dark;
@@ -54,7 +54,7 @@
             margin-bottom: 4px;
             color: #a1a1aa;
         }
-        input[type="text"], input[type="number"], select {
+        input[type="text"], input[type="password"], input[type="number"], select {
             width: 100%;
             box-sizing: border-box;
             background-color: #141417 !important;
@@ -76,7 +76,7 @@
             padding-right: 30px;
             cursor: pointer;
         }
-        select:focus, input[type="text"]:focus, input[type="number"]:focus {
+        select:focus, input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus {
             border-color: #9146FF;
         }
         select option {
@@ -196,8 +196,10 @@
             <summary id="i18n-adv-summary">⚙️ Erweiterte Login-Optionen / Eigene Client-ID (Optional)</summary>
             <div id="i18n-adv-guide" class="hint"></div>
             <label id="i18n-clientid-label">Twitch App Client-ID (Standard bereits hinterlegt):</label>
-            <input type="text" id="clientId" value="swyl7vd2qbrbq3hj8nuo8zkrywtyga" placeholder="swyl7vd2qbrbq3hj8nuo8zkrywtyga" onchange="saveClientId()">
-            <button id="i18n-btn-save-clientid" class="secondary" onclick="startDeviceLogin()">🔑 Client-ID speichern & Code-Login starten</button>
+            <input type="text" id="clientId" value="nglaah171uy4d4p4fbogi2au3w3oj7" placeholder="nglaah171uy4d4p4fbogi2au3w3oj7" onchange="saveClientCredentials()">
+            <label id="i18n-clientsecret-label">Optionales Client-Secret (NUR nötig bei eigener Confidential-App):</label>
+            <input type="password" id="clientSecret" value="" placeholder="Leer lassen bei Public-App" onchange="saveClientCredentials()">
+            <button id="i18n-btn-save-clientid" class="secondary" onclick="startDeviceLogin()">🔑 Zugangsdaten speichern & Code-Login starten</button>
         </details>
     </div>
 
@@ -310,9 +312,10 @@
                 btnLogout: '🚪 Vom Twitch-Konto abmelden (Logout)',
                 codePrompt: 'Code auf twitch.tv/activate eingeben:',
                 advSummary: '⚙️ Erweiterte Login-Optionen / Eigene Client-ID (Optional)',
-                advGuide: '<b>Hinweis:</b> Eine offizielle Standard-Client-ID ist bereits vorinstalliert – du kannst oben sofort auf <b>1-Klick Twitch Login</b> klicken!<br><br><b>Optional: Eigene Twitch Client-ID erstellen:</b><ol class="guide-list"><li>Öffne <code>dev.twitch.tv/console/apps</code> und klicke auf <b>"Anwendung registrieren"</b>.</li><li>Name: z.B. <code>MeinOpenDeckViewer</code></li><li>OAuth-Weiterleitungs-URL: <code>http://localhost</code></li><li>Kategorie: <b>Application Integration</b> &rarr; Client-Typ: <b>Öffentlich (Public)</b>.</li><li>Kopiere die angezeigte <b>Client-ID</b> hier in das Feld:</li></ol>',
-                clientIdLabel: 'Twitch App Client-ID (Standard bereits hinterlegt):',
-                btnSaveClientId: '🔑 Client-ID speichern & Code-Login starten',
+                advGuide: '<b>Hinweis:</b> Unsere offizielle Public Client-ID ist bereits vorinstalliert – du kannst oben sofort auf <b>1-Klick Twitch Login</b> klicken!<br><br><b>Optional für Entwickler (Eigene Twitch App nutzen):</b><ol class="guide-list"><li>Öffne <code>dev.twitch.tv/console/apps</code> und klicke auf <b>"Anwendung registrieren"</b>.</li><li>Name: z.B. <code>MeinOpenDeckViewer</code>, OAuth-Redirect: <code>http://localhost:3000</code></li><li>Kategorie: <b>Application Integration</b> &rarr; Client-Typ: <b>Öffentlich (Public)</b>.</li><li>Falls deine eigene App auf <i>Vertraulich (Confidential)</i> steht, kannst du unten zusätzlich dein Client-Secret eintragen.</li></ol>',
+                clientIdLabel: 'Twitch App Client-ID (Public Standard bereits hinterlegt):',
+                clientSecretLabel: 'Optionales Client-Secret (NUR nötig bei eigener Confidential-App):',
+                btnSaveClientId: '🔑 Zugangsdaten speichern & Code-Login starten',
                 selectStreamer: 'Gefolgten Streamer auswählen:',
                 pleaseConnectFirst: '-- Bitte erst mit Twitch verbinden --',
                 autoslotTitle: '⚡ Dynamic Live Slot Verhalten:',
@@ -356,9 +359,10 @@
                 btnLogout: '🚪 Disconnect Twitch Account (Logout)',
                 codePrompt: 'Enter code on twitch.tv/activate:',
                 advSummary: '⚙️ Advanced Login Options / Custom Client-ID (Optional)',
-                advGuide: '<b>Note:</b> A default Client-ID is pre-installed – you can click <b>1-Click Twitch Login</b> above right away!<br><br><b>Optional: Create your own free Twitch Client-ID:</b><ol class="guide-list"><li>Open <code>dev.twitch.tv/console/apps</code> and click <b>"Register Your Application"</b>.</li><li>Name: e.g. <code>MyOpenDeckViewer</code></li><li>OAuth Redirect URL: <code>http://localhost</code></li><li>Category: <b>Application Integration</b> &rarr; Client Type: <b>Public</b>.</li><li>Copy the generated <b>Client-ID</b> into the field below:</li></ol>',
-                clientIdLabel: 'Twitch App Client-ID (Default pre-configured):',
-                btnSaveClientId: '🔑 Save Client-ID & Start Code Login',
+                advGuide: '<b>Note:</b> Our official Public Client-ID is pre-installed – you can click <b>1-Click Twitch Login</b> above right away!<br><br><b>Optional for Developers (Custom Twitch App):</b><ol class="guide-list"><li>Open <code>dev.twitch.tv/console/apps</code> and click <b>"Register Your Application"</b>.</li><li>Name: e.g. <code>MyOpenDeckViewer</code>, OAuth Redirect: <code>http://localhost:3000</code></li><li>Category: <b>Application Integration</b> &rarr; Client Type: <b>Public</b>.</li><li>If your custom app is set to <i>Confidential</i>, you can also provide its Client Secret below.</li></ol>',
+                clientIdLabel: 'Twitch App Client-ID (Public default pre-configured):',
+                clientSecretLabel: 'Optional Client Secret (ONLY needed for custom Confidential apps):',
+                btnSaveClientId: '🔑 Save Credentials & Start Code Login',
                 selectStreamer: 'Select Followed Streamer:',
                 pleaseConnectFirst: '-- Please connect with Twitch first --',
                 autoslotTitle: '⚡ Dynamic Live Slot Behavior:',
@@ -412,6 +416,7 @@
             document.getElementById('i18n-adv-summary').textContent = tr('advSummary');
             document.getElementById('i18n-adv-guide').innerHTML = tr('advGuide');
             document.getElementById('i18n-clientid-label').textContent = tr('clientIdLabel');
+            document.getElementById('i18n-clientsecret-label').textContent = tr('clientSecretLabel');
             document.getElementById('i18n-btn-save-clientid').textContent = tr('btnSaveClientId');
 
             document.getElementById('i18n-select-streamer').textContent = tr('selectStreamer');
@@ -503,9 +508,12 @@
                     if (p.clientId !== undefined && p.clientId !== '') {
                         document.getElementById('clientId').value = p.clientId;
                     }
+                    if (p.clientSecret !== undefined) {
+                        document.getElementById('clientSecret').value = p.clientSecret;
+                    }
                     if (p.userLogin) {
                         setAuthUiState(true, p.userLogin);
-                    } else if (p.event === 'loggedOut') {
+                    } else if (p.event === 'loggedOut' || !p.userLogin) {
                         setAuthUiState(false, '');
                         cachedChannels = [];
                     }
@@ -642,25 +650,27 @@
             }
         }
 
-        function saveClientId() {
+        function saveClientCredentials() {
             const clientId = document.getElementById('clientId').value.trim();
+            const clientSecret = document.getElementById('clientSecret').value.trim();
             if (!websocket) return;
             websocket.send(JSON.stringify({
                 event: 'sendToPlugin',
                 action: actionUUID,
                 context: piUUID,
-                payload: { command: 'saveClientIdOnly', clientId }
+                payload: { command: 'saveClientCredentials', clientId, clientSecret }
             }));
         }
 
         function startDeviceLogin() {
             const clientId = document.getElementById('clientId').value.trim();
+            const clientSecret = document.getElementById('clientSecret').value.trim();
             if (!websocket) return;
             websocket.send(JSON.stringify({
                 event: 'sendToPlugin',
                 action: actionUUID,
                 context: piUUID,
-                payload: { command: 'startDeviceAuth', clientId }
+                payload: { command: 'startDeviceAuth', clientId, clientSecret }
             }));
         }
 
