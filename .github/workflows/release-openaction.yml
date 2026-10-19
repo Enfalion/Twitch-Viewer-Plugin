@@ -1,0 +1,50 @@
+name: Sync OpenAction Tag to Latest Stable
+
+on:
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-openaction:
+    if: github.event_name == 'workflow_dispatch' || github.event.release.tag_name != 'openaction'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find Latest Stable Version and Update openaction
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARGET_TAG=$(gh release list --limit 100 --json tagName,isPrerelease,isDraft | jq -r '.[] | select(.tagName != "openaction" and .isPrerelease == false and .isDraft == false) | .tagName' | sort -V | tail -n 1)
+
+          if [ -z "$TARGET_TAG" ]; then
+            echo "Kein passendes stabiles Release gefunden."
+            exit 1
+          fi
+
+          echo "Neueste stabile Version: $TARGET_TAG"
+          TARGET_COMMIT=$(git rev-parse "refs/tags/$TARGET_TAG")
+
+          gh release delete openaction --yes || true
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f -a openaction "$TARGET_COMMIT" -m "Release $TARGET_TAG"
+          git push origin openaction --force
+
+          mkdir -p release_assets
+          gh release download "$TARGET_TAG" --dir release_assets || true
+
+          if [ -n "$(ls -A release_assets 2>/dev/null)" ]; then
+            gh release create openaction release_assets/* --title "Twitch Viewer Plugin $TARGET_TAG" --notes "Aktueller stabiler Stand (basiert auf $TARGET_TAG)." --latest
+          else
+            gh release create openaction --title "Twitch Viewer Plugin $TARGET_TAG" --notes "Aktueller stabiler Stand (basiert auf $TARGET_TAG)." --latest
+          fi
