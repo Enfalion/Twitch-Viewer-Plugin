@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 /**
  * ============================================================================
- * OPENDECK TWITCH VIEWER PLUGIN v1.3.1 - MAIN BACKEND (bin/plugin.js)
+ * OPENDECK TWITCH VIEWER PLUGIN v1.3.2 - MAIN BACKEND (bin/plugin.js)
  * Author: Enfalion (https://github.com/Enfalion/Twitch-Viewer-Plugin)
  * Bundle-ID: xyz.enfalion.twitchviewer
+ * NEW IN v1.3.2:
+ * - Stores OAuth refresh_token and automatically renews expired access_tokens
+ *   in the background so users never get logged out after ~4 hours.
  * ============================================================================
  */
 
@@ -19,6 +22,7 @@ let ws = null;
 let pluginUUID = null;
 let activeDevicePollTimer = null;
 let appLanguage = 'de';
+let isRefreshingToken = false;
 
 const I18N_BACKEND = {
     de: {
@@ -49,6 +53,7 @@ function t(key) {
 let globalSettings = {
     clientId: DEFAULT_CLIENT_ID,
     accessToken: '',
+    refreshToken: '',
     userId: '',
     userLogin: '',
     languageOverride: ''
@@ -294,6 +299,68 @@ function renderMultiTwitchKeySvg(channelsStr = '') {
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
+/**
+ * DE: Erneuert den abgelaufenen Twitch Access-Token automatisch über den Refresh-Token.
+ * EN: Automatically refreshes an expired Twitch access token using the stored refresh token.
+ */
+async function refreshTwitchAccessToken() {
+    if (isRefreshingToken) return false;
+    const cid = getEffectiveClientId();
+    if (!cid || !globalSettings.refreshToken) {
+        return false;
+    }
+
+    isRefreshingToken = true;
+    try {
+        const body = `client_id=${encodeURIComponent(cid)}&grant_type=refresh_token&refresh_token=${encodeURIComponent(globalSettings.refreshToken)}`;
+        const res = await fetch('https://id.twitch.tv/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
+        });
+        const data = await res.json();
+
+        if (res.ok && data.access_token) {
+            globalSettings.accessToken = data.access_token;
+            if (data.refresh_token) {
+                globalSettings.refreshToken = data.refresh_token;
+            }
+            saveGlobalSettings();
+            console.log('[Twitch-Auth] Access token automatically refreshed via refresh_token.');
+            isRefreshingToken = false;
+            return true;
+        }
+    } catch (err) {
+        console.error('[Twitch-Auth] Token refresh failed:', err.message);
+    }
+    isRefreshingToken = false;
+    return false;
+}
+
+/**
+ * DE: Wrapper für Twitch Helix API-Aufrufe – fängt 401 (Token abgelaufen) automatisch ab,
+ *     erneuert den Token im Hintergrund und wiederholt die Anfrage sofort.
+ * EN: Wrapper for Twitch Helix API requests – intercepts 401 Unauthorized, refreshes
+ *     the token seamlessly, and retries the request once.
+ */
+async function twitchHelixFetch(url, options = {}) {
+    const cid = getEffectiveClientId();
+    const makeHeaders = () => ({
+        ...(options.headers || {}),
+        'Client-ID': cid,
+        'Authorization': `Bearer ${globalSettings.accessToken}`
+    });
+
+    let res = await fetch(url, { ...options, headers: makeHeaders() });
+    if (res.status === 401 && globalSettings.refreshToken) {
+        const refreshed = await refreshTwitchAccessToken();
+        if (refreshed) {
+            res = await fetch(url, { ...options, headers: makeHeaders() });
+        }
+    }
+    return res;
+}
+
 async function startTwitchDeviceAuth(clientIdInput, piContext) {
     const clientId = (clientIdInput || getEffectiveClientId()).trim();
     if (!clientId) {
@@ -349,6 +416,7 @@ async function startTwitchDeviceAuth(clientIdInput, piContext) {
 
                     globalSettings.clientId = clientId;
                     globalSettings.accessToken = tokenData.access_token;
+                    globalSettings.refreshToken = tokenData.refresh_token || '';
 
                     await fetchCurrentTwitchUser();
                     saveGlobalSettings();
@@ -375,6 +443,7 @@ function logoutTwitchAccount(piContext) {
     }
 
     globalSettings.accessToken = '';
+    globalSettings.refreshToken = '';
     globalSettings.userId = '';
     globalSettings.userLogin = '';
     followedChannelsCache = [];
@@ -390,12 +459,7 @@ function logoutTwitchAccount(piContext) {
 }
 
 async function fetchCurrentTwitchUser() {
-    const res = await fetch('https://api.twitch.tv/helix/users', {
-        headers: {
-            'Client-ID': getEffectiveClientId(),
-            'Authorization': `Bearer ${globalSettings.accessToken}`
-        }
-    });
+    const res = await twitchHelixFetch('https://api.twitch.tv/helix/users');
     const json = await res.json();
     if (json.data && json.data[0]) {
         globalSettings.userId = json.data[0].id;
@@ -405,21 +469,27 @@ async function fetchCurrentTwitchUser() {
 
 async function refreshTwitchDataAndRenderAll() {
     const cid = getEffectiveClientId();
-    if (!cid || !globalSettings.accessToken || !globalSettings.userId) {
+    if (!cid || !globalSettings.accessToken) {
         renderAllVisibleKeys();
         return;
     }
 
-    const headers = {
-        'Client-ID': cid,
-        'Authorization': `Bearer ${globalSettings.accessToken}`
-    };
-
     try {
-        const followedRes = await fetch(
-            `https://api.twitch.tv/helix/channels/followed?user_id=${globalSettings.userId}&first=100`,
-            { headers }
+        if (!globalSettings.userId) {
+            await fetchCurrentTwitchUser();
+            if (!globalSettings.userId) {
+                renderAllVisibleKeys();
+                return;
+            }
+        }
+
+        const followedRes = await twitchHelixFetch(
+            `https://api.twitch.tv/helix/channels/followed?user_id=${globalSettings.userId}&first=100`
         );
+        if (!followedRes.ok) {
+            renderAllVisibleKeys();
+            return;
+        }
         const followedJson = await followedRes.json();
         const followedList = followedJson.data || [];
 
@@ -428,12 +498,12 @@ async function refreshTwitchDataAndRenderAll() {
         const broadcasterIds = followedList.map(c => c.broadcaster_id);
 
         const userQuery = broadcasterIds.slice(0, 100).map(id => `id=${id}`).join('&');
-        const usersRes = await fetch(`https://api.twitch.tv/helix/users?${userQuery}`, { headers });
+        const usersRes = await twitchHelixFetch(`https://api.twitch.tv/helix/users?${userQuery}`);
         const usersJson = await usersRes.json();
         const userMap = new Map((usersJson.data || []).map(u => [u.id, u]));
 
         const streamQuery = broadcasterIds.slice(0, 100).map(id => `user_id=${id}`).join('&');
-        const streamsRes = await fetch(`https://api.twitch.tv/helix/streams?${streamQuery}`, { headers });
+        const streamsRes = await twitchHelixFetch(`https://api.twitch.tv/helix/streams?${streamQuery}`);
         const streamsJson = await streamsRes.json();
         const liveMap = new Map((streamsJson.data || []).map(s => [s.user_id, s]));
 
@@ -495,11 +565,9 @@ async function sendQuickChatMessage(channelLogin, messageText, context) {
     }
 
     try {
-        const res = await fetch('https://api.twitch.tv/helix/chat/messages', {
+        const res = await twitchHelixFetch('https://api.twitch.tv/helix/chat/messages', {
             method: 'POST',
             headers: {
-                'Client-ID': getEffectiveClientId(),
-                'Authorization': `Bearer ${globalSettings.accessToken}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -664,7 +732,7 @@ function handleKeyUp(event) {
     if (!state) return;
 
     clearTimeout(state.timer);
-activeKeyTimers.delete(context);
+    activeKeyTimers.delete(context);
 
     if (!state.triggeredLong && state.channelLogin) {
         const settings = payload.settings || {};
