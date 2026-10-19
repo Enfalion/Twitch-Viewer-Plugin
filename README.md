@@ -12,7 +12,7 @@ Bundle-ID: xyz.enfalion.twitchviewer
 
 GitHub-Repository: https://github.com/Enfalion/Twitch-Viewer-Plugin
 
-✨ Die 5 Kern-Funktionen (v1.3.1)
+✨ Die 5 Kern-Funktionen (v1.3.2)
 
 👤 Favoriten-Streamer (Live-Status & 100% Optionale Overlays)
 
@@ -105,7 +105,7 @@ Bundle ID: xyz.enfalion.twitchviewer
 
 GitHub Repository: https://github.com/Enfalion/Twitch-Viewer-Plugin
 
-✨ The 5 Core Features (v1.3.1)
+✨ The 5 Core Features (v1.3.2)
 
 👤 Favorite Streamer (Live Status & 100% Optional Overlays)
 
@@ -183,9 +183,9 @@ Confirm the 8-digit code in your browser at twitch.tv/activate – done! (Advanc
 cd xyz.enfalion.twitchviewer.sdPlugin
 npm install --omit=dev
 cd ..
-zip -r xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip xyz.enfalion.twitchviewer.sdPlugin -x "*.git*" "*.DS_Store*"
-cp xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip xyz.enfalion.twitchviewer.streamDeckPlugin
-md5sum xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip > xyz.enfalion.twitchviewer.sdPlugin-v1.3.1.zip.md5
+zip -r xyz.enfalion.twitchviewer.sdPlugin-v1.3.2.zip xyz.enfalion.twitchviewer.sdPlugin -x "*.git*" "*.DS_Store*"
+cp xyz.enfalion.twitchviewer.sdPlugin-v1.3.2.zip xyz.enfalion.twitchviewer.streamDeckPlugin
+md5sum xyz.enfalion.twitchviewer.sdPlugin-v1.3.2.zip > xyz.enfalion.twitchviewer.sdPlugin-v1.3.2.zip.md5
 
 Twitch Login Options:
 
