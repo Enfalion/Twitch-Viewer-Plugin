@@ -100,7 +100,7 @@ If you want to use your own custom Twitch Application, expand **"⚙️ Advanced
 ---
 
 <a id="maintainer-packaging-guide"></a>
-## 📦 Maintainer Guide: Building `.zip` / `.streamDeckPlugin` & MD5 Checksums
+## 📦 Maintainer Packaging Guide: Building `.zip` / `.streamDeckPlugin` & MD5 Checksums
 
 ```bash
 cd xyz.enfalion.twitchviewer.sdPlugin
