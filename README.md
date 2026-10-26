@@ -99,7 +99,7 @@ If you want to use your own custom Twitch Application, expand **"⚙️ Advanced
 
 ---
 
-## Maintainer Packaging Guide
+## Maintainer Guide
 
 📦 To build the `.zip`, `.streamDeckPlugin`, and `.md5` checksum files for a new release:
 
