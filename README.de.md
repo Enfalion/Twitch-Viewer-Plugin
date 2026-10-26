@@ -1,6 +1,6 @@
 # 💜 OpenDeck Twitch Viewer Plugin (`xyz.enfalion.twitchviewer`)
 
-> 🇬🇧 [**English Documentation below**](#english-documentation) | 🔑 [**Eigene Client-ID / Admin-Guide**](#custom-client-id-guide) | 📦 [**Maintainer Packaging Guide**](#maintainer-packaging-guide)
+> 🌐 **Sprache wählen / Select Language:** 🇩🇪 **Deutsch (Aktuell)** | 🇬🇧 [**English (Click here)**](./README.md) | 📦 [**Maintainer Packaging Guide**](#maintainer-guide)
 
 ---
 
