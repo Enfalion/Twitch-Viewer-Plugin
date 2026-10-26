@@ -1,6 +1,6 @@
 # 💜 OpenDeck Twitch Viewer Plugin (`xyz.enfalion.twitchviewer`)
 
-> 🌐 **Select Language / Sprache wählen:** 🇬🇧 **English (Current)** | 🇩🇪 [**Deutsch (Hier klicken)**](./README.de.md) | 📦 [**Maintainer Packaging Guide**](#mmaintainer-packaging-guide)
+> 🌐 **Select Language / Sprache wählen:** 🇬🇧 **English (Current)** | 🇩🇪 [**Deutsch (Hier klicken)**](./README.de.md) | 📦 [**Maintainer Packaging Guide**](#maintainer-guide)
 
 A cross-platform **OpenDeck & Stream Deck Plugin** tailored specifically for **Twitch Viewers** (Windows, Linux & macOS). Connect your Twitch account with a single click, place your favorite streamers on your deck, and see who is live at a glance!
 
@@ -99,8 +99,8 @@ If you want to use your own custom Twitch Application, expand **"⚙️ Advanced
 
 ---
 
-<a id="maintainer-packaging-guide"></a>
-## 📦 Maintainer Packaging Guide: Building `.zip` / `.streamDeckPlugin` & MD5 Checksums
+<a id="maintainer-guide"></a>
+## 📦 Maintainer Guide: Building `.zip` / `.streamDeckPlugin` & MD5 Checksums
 
 ```bash
 cd xyz.enfalion.twitchviewer.sdPlugin
